@@ -17,3 +17,5 @@
   * After clicking on robustness_topology properties (Degree, InDegree... etc.), network is disappeared. Please import excel file again for further movements.
 * For Adjacency_matrix saving:
   * Please save the matrix in this format: XXXX.csv. Then open it with Microsoft Excel.
+## Notes and Acknowledgements
+The code is developed using Python and the idea comes from 
