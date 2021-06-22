@@ -1,0 +1,12 @@
+tkinter
+networkx
+pandas
+matplotlib.pyplot
+matplotlib.colors
+PIL
+scipy.integrate
+scipy.stats
+xlsxwriter
+re
+numpy
+matplotlib.backends.backend_tkagg
