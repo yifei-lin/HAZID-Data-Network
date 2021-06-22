@@ -2,7 +2,7 @@
 ## Requirements
 * Python 3.6
 * Install python packages:
-  * pip install -r requirements.txt
+  * 'pip install -r requirements.txt'
 ## Usages
 * For input format:
   * Please keep the reading network elements inside first three columns.
