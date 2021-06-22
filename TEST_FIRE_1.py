@@ -1,31 +1,31 @@
-from tkinter import filedialog, messagebox
-
+from tkinter import filedialog
 import networkx as nx
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from PIL import ImageTk, Image
+from PIL import Image
 from scipy.integrate import simps
 from scipy.stats import skew
 import xlsxwriter
 import re
 import tkinter as tk
 import matplotlib
-from numpy import trapz
-
 matplotlib.use('TkAgg')
 import numpy as np
-import cv2
-
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
 
-from matplotlib.widgets import Button
 
 
 class Matrix():
     def __init__(self, excel_name, node_weight: dict, node_ID: dict):
+        """
+        Construct an adjacency matrix with node_id,node_weight saved.
+
+        Parameters:
+        excel_name: A string shows the file needs to be read.
+        node_weight: An emtpy Dictionary at initial, contains nodes weighting info.
+        node_ID: An emtpy Dictionary at initial, contains nodes ID.
+        """
         self._excel_name = excel_name
         self._node_weight = node_weight
         self._node_ID = node_ID
@@ -35,16 +35,31 @@ class Matrix():
         self.gcm()
 
     def read_sheet(self, file_name, skiprows=0):
+        """(pd.dataframe): Returns the first sheet of the excel file"""
+        ## Read the input excel sheet with file_name given and return a dataframe.
+        ## Pandas in use
         df = pd.read_excel(file_name, skiprows=skiprows)
         return df
 
     def checkSame(self, nodeName, dictionaryName):
+        """(Boolean): Returns true while nodeName's lower cases equals any keys inside input dictionary.
+                      Returns false while no matches.
+        """
         for i in dictionaryName.keys():
             if nodeName.lower() == i.lower():
                 return True
         return False
 
     def splitWeight(self, nodeWeight, node, weight, bracketOR, bracketAND):
+        """ Split input node string and weight them.
+
+        Parameters:
+            nodeWeight (Dictionary): Contains Node elements correspond to their node_ID
+            node (String): Excel block elements contains node element (Usually contains more than one node element)
+            weight (Int): Initial set to zero.
+            bracketOR(Int): Initial set to zero.
+            bracketAND(Int): Initial set to zero.
+        """
         if 'AND' not in node and 'OR' not in node:
             if '(' in node and ')' not in node:
                 nodesDeviation = node.split('(')[1]
@@ -60,6 +75,7 @@ class Matrix():
                 nodeWeight[node] = weight
         if 'OR' in node:
             if bracketOR == 0:
+                ## split OR outside brackets
                 a = re.split(r' OR \s*(?![^()]*\))', node)
                 for i in a:
                     self.splitWeight(nodeWeight, i, weight, bracketOR + 1, bracketAND)
@@ -69,6 +85,7 @@ class Matrix():
                     for j in nodesDeviation:
                         self.splitWeight(nodeWeight, j, weight, bracketOR, bracketAND)
                 else:
+                    ## split AND outside brackets
                     a = re.split(r' AND \s*(?![^()]*\))', node)
                     for i in a:
                         if '(' in i:
@@ -80,6 +97,7 @@ class Matrix():
                             self.splitWeight(nodeWeight, i, weight + len(a) - 1, bracketOR + 1, bracketAND + 1)
         if 'AND' in node and 'OR' not in node:
             if bracketAND == 0:
+                ## split AND outside brackets
                 a = re.split(r' AND \s*(?![^()]*\))', node)
                 if len(a) == 1:
                     self.splitWeight(nodeWeight, str(a), weight, bracketOR, bracketAND + 1)
@@ -92,6 +110,13 @@ class Matrix():
                     self.splitWeight(nodeWeight, j, weight + len(nodesDeviation) - 1, bracketOR, bracketAND)
 
     def splitID(self, node, bracketOR, bracketAND):
+        """ Split input node string and number them.
+
+        Parameters:
+            node (String): Excel block elements contains node element (Usually contains more than one node element)
+            bracketOR(Int): Initial set to zero.
+            bracketAND(Int): Initial set to zero.
+        """
         count = 0
         if 'AND' not in node and 'OR' not in node:
             if '(' in node and ')' not in node:
@@ -121,6 +146,7 @@ class Matrix():
 
         if 'OR' in node:
             if bracketOR == 0:
+                ## split OR outside brackets
                 a = re.split(r' OR \s*(?![^()]*\))', node)
                 for i in a:
                     self.splitID(i, bracketOR + 1, bracketAND)
@@ -130,6 +156,7 @@ class Matrix():
                     self.splitID(j, bracketOR, bracketAND)
         if 'AND' in node and 'OR' not in node:
             if bracketAND == 0:
+                ## split AND outside brackets
                 a = re.split(r' AND \s*(?![^()]*\))', node)
                 if len(a) == 1:
                     self.splitID(str(a), bracketOR, bracketAND + 1)
@@ -142,6 +169,14 @@ class Matrix():
                     self.splitID(j, bracketOR, bracketAND)
 
     def splitIDD(self, node_IDD, node, bracketOR, bracketAND):
+        """ Split input node string and number them.
+
+        Parameters:
+            node_IDD(Dictionary): Node elements correspond to their IDs (Rows)
+            node (String): Excel block elements contains node element (Usually contains more than one node element)
+            bracketOR(Int): Initial set to zero.
+            bracketAND(Int): Initial set to zero.
+        """
         count = 0
         if 'AND' not in node and 'OR' not in node:
             if '(' in node and ')' not in node:
@@ -170,6 +205,7 @@ class Matrix():
 
         if 'OR' in node:
             if bracketOR == 0:
+                ## split OR outside brackets
                 a = re.split(r' OR \s*(?![^()]*\))', node)
                 for i in a:
                     self.splitIDD(node_IDD, i, bracketOR + 1, bracketAND)
@@ -179,6 +215,7 @@ class Matrix():
                     self.splitIDD(node_IDD, j, bracketOR, bracketAND)
         if 'AND' in node and 'OR' not in node:
             if bracketAND == 0:
+                ## split AND outside brackets
                 a = re.split(r' AND \s*(?![^()]*\))', node)
                 if len(a) == 1:
                     self.splitIDD(node_IDD, str(a), bracketOR, bracketAND + 1)
@@ -191,6 +228,14 @@ class Matrix():
                     self.splitIDD(node_IDD, j, bracketOR, bracketAND)
 
     def gatherNode(self, list_cus, causeNode, times):
+        """ Create the input 'list_cus' as a list storing node relations.
+            This list is mainly used for nodes elmination.
+
+        Parameters:
+            list_cus(List): Initial empty list, with [a,b] showing a causes b.
+            causeNode (String): Excel block elements contains node element (Usually contains more than one node element)
+            times(Int): Initial set to zero.
+        """
         list_1 = []
         list_22 = []
         if '(' not in causeNode and ')' not in causeNode:
@@ -209,10 +254,12 @@ class Matrix():
                 list_1.append(causeNode)
                 list_cus.append(list_1)
         if '(' in causeNode:
+            ## split OR outside brackets
             a = re.split(r' OR \s*(?![^()]*\))', causeNode)
             if len(a) == 1:
                 for x in a:
                     if 'OR' in x:
+                        ## split AND outside brackets
                         b = re.split(r' AND \s*(?![^()]*\))', causeNode)
                         for i in b:
                             nodesDeviation = i.split('(')[1]
@@ -230,6 +277,7 @@ class Matrix():
                                 list_1.append(nodesDDeviation)
                         list_cus.append(list_1)
                     else:
+                        ## split AND outside brackets
                         b = re.split(r' AND \s*(?![^()]*\))', x)
                         for y in b:
                             nodesDeviation = y.split('(')[1]
@@ -255,13 +303,20 @@ class Matrix():
                         list_cus.append(list_1)
 
     def deleteNode(self, node_no: list):
+        """ Delete the node inside the node_no from adjacency matrix.
+
+        Parameters:
+            node_no(List): Nodes waited to be eliminated.
+        """
         gather_list_two = self._gather_list.copy()
         if len(node_no) == 0:
             self._gather_list = gather_list_two
         else:
             for j in range(len(self._adjacency_matrix)):
+                ##The relations showing nodes point to the eliminated node should be removed.
                 self._adjacency_matrix[j][int(node_no[0])] = 0
             for mid_list in self._gather_list:
+                ## Check mid_list contains all integer or not.
                 if all(isinstance(item, int) for item in mid_list[0]):
                     if int(node_no[0]) in mid_list[0]:
                         list_1 = mid_list[0]
@@ -277,6 +332,7 @@ class Matrix():
                             if isinstance(i, list):
                                 for list_item in i:
                                     self._adjacency_matrix[list_item][mid_list[1]] = 0
+                        ## The relations showing nodes caused by eliminated nodes should also be removed.
                         node_no.append(mid_list[1])
                         gather_list_two.remove(mid_list)
                     elif int(node_no[0]) not in mid_list[0]:
@@ -299,6 +355,7 @@ class Matrix():
             self.deleteNode(node_no)
 
     def gcm(self):
+        """ Create the Adjacency Matrix."""
         df = self._df
         name = []
         for col in list(df.columns):
@@ -311,14 +368,17 @@ class Matrix():
                 self.splitID(row[name[1]].rstrip(), 0, 0)
             if row[name[2]] != 'None':
                 self.splitID(row[name[2]].rstrip(), 0, 0)
+        ## Set initial size of the adjacency matrix.
         adjacency_matrix = np.zeros((len(self._node_ID), len(self._node_ID)))
         for index, row in df.iterrows():
+
+            ## The second column and the first column
             node_Weight1 = {}
             node_IDD1 = {}
             list_cus = []
+
             ##Get node weight
             self.splitWeight(node_Weight1, row[name[1]].rstrip(), 1, 0, 0)
-            print(node_Weight1)
             ##Get node ID
             self.splitIDD(node_IDD1, row[name[0]].rstrip(), 0, 0)
             ##split node for delete_node function
@@ -340,6 +400,7 @@ class Matrix():
                                     count1 += 1
                         count += 1
                 count = 0
+            ## Create the relationship list (gather_list) mainly used for nodes elimination
             for aa in node_IDD1.keys():
                 for bb in self._node_ID.keys():
                     if aa.lower() == bb.lower():
@@ -357,6 +418,8 @@ class Matrix():
                                 if j.lower() == l.lower():
                                     y = self._node_ID[l]
                                     adjacency_matrix[x, y] = node_Weight1[i]
+
+            ## The first column and the third column
             node_Weight2 = {}
             node_IDD2 = {}
             list_cus_1 = []
@@ -377,6 +440,7 @@ class Matrix():
                                     a[count] = self._node_ID[k]
                                     count += 1
                 count = 0
+            ## Create the relationship list (gather_list) mainly used for nodes elimination
             for aa in node_IDD2.keys():
                 for bb in self._node_ID.keys():
                     if aa.lower() == bb.lower():
@@ -402,47 +466,19 @@ class Matrix():
     def get_gather_list(self):
         return self._gather_list
 
-
-class Handle():
-
-
-    def __init__(self, master, excel_name="Book99999.xlsx", node_weight={}, node_ID={}):
-
-        self._master = master
-
-        self._excel_name = excel_name
-        self._node_weight = node_weight
-        self._node_ID = node_ID
-
-        self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
-        self._digraphPlot = digraphPlot(self._master, self._matrix)
-        self._digraphPlot.pack(fill=tk.BOTH, expand=tk.YES)
-
-        self._digraphPlot.draw_board()
-        # fig1 = ImageTk.PhotoImage(Image.open("sample_1.jpg"))
-        fig = cv2.imread("sample_1.png")
-        width, height = fig.shape[1], fig.shape[0]
-        width_new = 1000
-        fig_new = cv2.resize(fig, (width_new, int(height * width_new / width)))
-        cv2.imwrite('fig_new_1.png', fig_new)
-        b, g, r = cv2.split(fig_new)
-        fig_new = cv2.merge((r, g, b))
-        img = Image.fromarray(fig_new)
-        im = ImageTk.PhotoImage(image=img)
-        self._master.im = im
-        self._digraphPlot.create_image(0, 0, anchor=tk.NW, image=im)
-        self._master.tk.call('tk', 'scaling', 4.0)
-
+    def get_node_ID(self):
+        return self._node_ID
 
 class digraphPlot(tk.Canvas, tk.Frame):
 
     def __init__(self, master, delete_node=[], node_weight={}, node_ID={}):
         """
-        Construct a board view from a board_layout.
+        Construct a view from a Matrix.
         Parameters:
-        master (tk.Widget): Widget within which the board is placed.
-        adjacency_matrix (Matrix): The class BoardModel, the basic gameplay settings.
-        board_width (int): The number of pixels the board should span (both width and height).
+        master (tk.Widget): Widget within which the frame is placed.
+        delete_node(list): An emtpy list at initial, contains nodes need to be deleted.
+        node_weight(Dictionary): An emtpy Dictionary at initial, contains nodes weighting info.
+        node_ID(Dictionary): An emtpy Dictionary at initial, contains nodes ID.
         """
         super().__init__(master)
 
@@ -453,6 +489,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._excel_name = self.load_excel()
         self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
         self._adjacency_matrix = self._matrix.adjacency_matrix()
+        self._node_ID = self._matrix.get_node_ID()
         self._digarph_normal = self.get_Digraph()
         self._pos = nx.nx_agraph.graphviz_layout(self._digarph_normal)
         self.add_menu()
@@ -472,8 +509,25 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._deleted_node = []
         self._node_neighbor = self.neighbor_of_nodes()
         self._largest_connected_component = []
+        self.node_info()
 
 
+    def node_info(self):
+
+        """(XLSX file): Excel sheet contains node_ID and Info."""
+
+        workbook = xlsxwriter.Workbook('NODEs.xlsx')
+        worksheet = workbook.add_worksheet()
+        row = 0
+        col = 0
+
+        for i in self._node_ID.keys():
+            row += 1
+            worksheet.write(row, col, i)
+            worksheet.write(row, col + 1, self._node_ID[i])
+            row += 1
+
+        workbook.close()
 
     def add_menu(self):
         """Add the menu function in the master widget."""
@@ -488,6 +542,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._filename = None
 
     def load_excel(self):
+        """Select the excel file under same direction with this file"""
         self._filename = filedialog.askopenfilename()
         # If file exists
         if self._filename:
@@ -496,7 +551,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
             return self._filename
 
     def re_excel(self):
-
+        """Select another excel file under same direction with this file
+           Create Matrix, Redraw the frame and canvas.
+        """
         filename = filedialog.askopenfilename()
         self._frame_one.destroy()
         self._frame_two.destroy()
@@ -531,19 +588,15 @@ class digraphPlot(tk.Canvas, tk.Frame):
             np.savetxt(self._filename, self._adjacency_matrix, fmt="%d", delimiter=",")
 
     def quit(self):
-        quit = messagebox.askyesno("Quit", "Are you sure you want to quit ?")
-        if quit:
-            self._master.destroy()
-
-    def draw_board(self):
-        """Draw the game board by updating the rectangle displayed in each place."""
-        self.plot_Digraph_initial()
+        """Execute the program"""
+        self._master.destroy()
 
     def get_dict(self, list1):
         output = dict([(i[0], i[1]) for i in list1])
         return output
 
     def get_Digraph(self):
+        """ Return the directed graph structure from the adjacency matrix"""
         G = nx.DiGraph(directed=True)
         a = []
         for i in range(len(self._adjacency_matrix)):
@@ -551,14 +604,21 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in range(len(self._adjacency_matrix)):
             for j in range(len(self._adjacency_matrix)):
                 if self._adjacency_matrix[i][j] == 1:
-                    G.add_edge(a[i], a[j], color='r', weight=int(self._adjacency_matrix[i][j]))
+                    G.add_edge(a[i], a[j], color='red', weight=int(self._adjacency_matrix[i][j]))
                 elif self._adjacency_matrix[i][j] == 2:
-                    G.add_edge(a[i], a[j], color='b', weight=int(self._adjacency_matrix[i][j]))
+                    G.add_edge(a[i], a[j], color='blue', weight=int(self._adjacency_matrix[i][j]))
                 elif self._adjacency_matrix[i][j] == 3:
-                    G.add_edge(a[i], a[j], color='g', weight=int(self._adjacency_matrix[i][j]))
+                    G.add_edge(a[i], a[j], color='green', weight=int(self._adjacency_matrix[i][j]))
+                elif self._adjacency_matrix[i][j] == 4:
+                    G.add_edge(a[i], a[j], color='yellow', weight=int(self._adjacency_matrix[i][j]))
+                elif self._adjacency_matrix[i][j] == 5:
+                    G.add_edge(a[i], a[j], color='black', weight=int(self._adjacency_matrix[i][j]))
+                elif self._adjacency_matrix[i][j] == 6:
+                    G.add_edge(a[i], a[j], color='purple', weight=int(self._adjacency_matrix[i][j]))
         return G
 
     def plot_Digraph_initial(self):
+        """ Plot the directed graph structure on the canvas"""
         fig = plt.figure(figsize=(6, 6), dpi=200)
 
         plt.axis('off')
@@ -567,14 +627,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._digarph_normal = self.get_Digraph()
         pos = nx.nx_agraph.graphviz_layout(self._digarph_normal)
         colors = nx.get_edge_attributes(self._digarph_normal, 'color').values()
-        # edge_labels = dict([((u, v,), d['weight'])
-        #                   for u, v, d in G.edges(data=True)])
-        # nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-        options = {'font_size': 3,
-                   'font_color': 'white',
-                   'node_color': 'black',
-                   'node_size': 60,
-                   'style': 'solid',  # (solid|dashed|dotted,dashdot)
+        options = {'font_size': 3, 'font_color': 'white', 'node_color': 'black', 'node_size': 60,
+                   'style': 'solid',
                    'width': 0.3
                    }
         nx.draw_networkx(self._digarph_normal, pos, edge_color=colors, arrows=True, arrowsize=2,
@@ -588,6 +642,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         canvas.get_tk_widget().pack(side=tk.LEFT, fill=None, expand=tk.YES)
 
     def plot_ColorMap(self, measures, measure_name):
+        """ Plot the colormap structure (Degree, In-degree, Out-degree, Betweenness, Closeness) on the canvas"""
         fig = plt.figure(figsize=(6, 6), dpi=200)
         self._digarph_normal = self.get_Digraph()
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
@@ -622,6 +677,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         canvas.get_tk_widget().pack(side=tk.LEFT, fill=None, expand=tk.YES)
 
     def plot_ColorMap_eigen(self, measures, measure_name):
+        """ Plot the colormap structure (Eigenvector) on the canvas"""
         fig = plt.figure(figsize=(6, 6), dpi=200)
         self._digarph_normal = self.get_Digraph()
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
@@ -659,14 +715,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         f = Image.open(fileName)
         f.show()
 
-    def get_Giant_Component(self):
-        a = 0
-        largest = max(nx.strongly_connected_components(self.get_Digraph()), key=len)
-        for i in largest:
-            a = int(i)
-        self._largest_component.append(a)
-
     def neighbor_of_nodes(self):
+        """(Distionary): Returns node_ID as keys and pointing nodes as values in list structure"""
         nodes = {}
         for i in range(len(self._adjacency_matrix)):
             node_neighbor = []
@@ -677,12 +727,18 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 nodes[i] = node_neighbor
         return nodes
 
-    # input the value of first key inside neighbor of nodes
+
     def new(self, saved_list, component, index):
+        """ Delete the node inside the node_no from adjacency matrix.
+
+        Parameters:
+            saved_list(List): Initial empty list, store pointed nodes need to be recursive to add to connected component.
+            component(List): Initial empty list, store final connected nodes as a component.
+            index(Int): Index of node in node_neighbor dictionary.
+        """
         if len(self._node_neighbor) == 0:
             return
         else:
-            print(self._node_neighbor)
             saved_list.append(list(self._node_neighbor.keys())[index])
             saved_list.extend(self._node_neighbor[list(self._node_neighbor.keys())[index]])
             saved_list = list(dict.fromkeys(saved_list))
@@ -694,6 +750,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             else:
                 for i in list(self._node_neighbor.keys()):
                     for j in self._node_neighbor[i]:
+                        ## Both incident nodes and being pointed nodes are connected component
                         if i in saved_list:
                             saved_list = list(dict.fromkeys(saved_list))
                             self.new(saved_list, component, list(self._node_neighbor.keys()).index(i))
@@ -714,40 +771,11 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 saved_list = []
                 self.new(saved_list, component, 0)
 
-    def delete_by_degree(self):
-        count = -1
-        name = ''
-        a = self.get_Digraph().degree
-        while len(a) != 0:
-            for i in a:
-                if i[1] > count:
-                    count = i[1]
-                    name = i[0]
-            self._deleted_node.append(name)
-            self._delete_node.append(int(name))
-            self.get_Giant_Component()
-            self._matrix.deleteNode(self._delete_node)
-            self._delete_node = []
-            self._adjacency_matrix = self._matrix.adjacency_matrix()
-            count = -1
-            name = ''
-            a = self.get_Digraph().degree
-        fig1, sub1 = plt.subplots()
-        a = []
-        for i in range(len(self._deleted_node)):
-            a.append(i)
-        print(self._largest_component)
-        sub1.plot(a, self._largest_component)
-        y = np.array(self._largest_component)
-        area = simps(y, dx=len(self._deleted_node))
-        sub1.text(5, 25, 'The area under curve is ' + str(area))
-        sub1.set_title('Nodes elimination follows order of degree')
-        sub1.set_xlabel('Number of Removed Nodes')
-        sub1.set_ylabel('Number of Remaining Nodes')
-        fig1.savefig('Effectiveness_Degree.png')
-        print("area =", area)
 
     def delete_by_degree_connected(self):
+        """
+        Delete all the nodes by the descending order of value of degree.
+        """
         count = -1
         name = ''
         a = self.get_Digraph().degree
@@ -767,7 +795,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_neighbor = self.neighbor_of_nodes()
-
             count = -1
             name = ''
             a = self.get_Digraph().degree
@@ -775,8 +802,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         a = []
         for i in range(len(self._deleted_node)):
             a.append(i)
-        print(self._largest_connected_component)
-        print(a)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
         area = int(simps(y, dx=len(self._deleted_node)))
@@ -785,9 +810,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
         sub1.set_xlabel('Number of Removed Nodes')
         sub1.set_ylabel('Size of Remaining Largest Component')
         fig1.savefig('Robustness_Degree.png')
-        print("area =", area)
 
     def delete_by_In_degree_connected(self):
+        """ Delete all the nodes by the descending order of value of In Degree."""
         count = -1
         name = ''
         a = self.get_Digraph().in_degree
@@ -815,9 +840,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         a = []
         for i in range(len(self._deleted_node)):
             a.append(i)
-        print(self._largest_connected_component)
-
-        print(a)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
         area = int(simps(y, dx=len(self._deleted_node)))
@@ -830,6 +852,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
 
 
     def delete_by_Out_degree_connected(self):
+        """ Delete all the nodes by the descending order of value of Out Degree."""
         count = 0
         name = ''
         a = self.get_Digraph().out_degree
@@ -857,9 +880,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         a = []
         for i in range(len(self._deleted_node)):
             a.append(i)
-        print(self._largest_connected_component)
-
-        print(a)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
         area = int(simps(y, dx=len(self._deleted_node)))
@@ -871,6 +891,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         print("area =", area)
 
     def delete_by_Closeness_connected(self):
+        """ Delete all the nodes by the descending order of value of Closeness."""
         count = -1
         name = ''
         cc = 0
@@ -884,9 +905,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     name = i
             self._deleted_node.append(name)
             self._delete_node.append(int(name))
-            print(2)
-            print(self._delete_node)
-            print(2)
             self.new([], component, 0)
             for i in component:
                 if len(i) > cc:
@@ -894,8 +912,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     aa.append(i)
                     if len(aa) != 1:
                         aa.pop(0)
-            print(cc)
-            print(aa)
             cc = 0
             max_length = max([(len(x)) for x in component])
             self._largest_connected_component.append(max_length)
@@ -912,8 +928,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         a = []
         for i in range(len(self._deleted_node)):
             a.append(i)
-        print(self._largest_connected_component)
-        print(a)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
         area = int(simps(y, dx=len(self._deleted_node)))
@@ -925,6 +939,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         print("area =", area)
 
     def delete_by_Eigenvector_connected(self):
+        """ Delete all the nodes by the descending order of value of Eigenvector."""
         count = -1
         name = ''
         b = len(self.get_Digraph())
@@ -956,8 +971,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         a = []
         for i in range(len(self._deleted_node)):
             a.append(i)
-        print(self._largest_connected_component)
-        print(a)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
         area = int(simps(y, dx=len(self._deleted_node)))
@@ -969,6 +982,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         print("area =", area)
 
     def delete_by_Betweenness_connected(self):
+        """ Delete all the nodes by the descending order of value of Betweenness."""
         count = -1
         name = ''
         a = nx.betweenness_centrality(self.get_Digraph())
@@ -982,20 +996,13 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     name = i
             self._deleted_node.append(name)
             self._delete_node.append(int(name))
-            print(2)
-            print(self._delete_node)
-            print(2)
             self.new([], component, 0)
-            print(component)
-            print(1)
             for i in component:
                 if len(i) > cc:
                     cc = len(i)
                     aa.append(i)
                     if len(aa) != 1:
                         aa.pop(0)
-            print(cc)
-            print(aa)
             max_length = max([(len(x)) for x in component])
             self._largest_connected_component.append(max_length)
             component = []
@@ -1012,8 +1019,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         a = []
         for i in range(len(self._deleted_node)):
             a.append(i)
-        print(self._largest_connected_component)
-        print(a)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
         area = int(simps(y, dx=len(self._deleted_node)))
@@ -1024,170 +1029,15 @@ class digraphPlot(tk.Canvas, tk.Frame):
         fig1.savefig('Robustness_Betweenness.png')
         print("area =", area)
 
-    def delete_by_indegree(self):
-        count = 0
-        name = ''
-        a = self.get_Digraph().in_degree
-        while len(a) != 0:
-            for i in a:
-                if i[1] > count:
-                    count = i[1]
-                    name = i[0]
-            self._deleted_node.append(name)
-            self._delete_node.append(int(name))
-            self.get_Giant_Component()
-            self._matrix.deleteNode(self._delete_node)
-            self._delete_node = []
-            self._adjacency_matrix = self._matrix.adjacency_matrix()
-            count = 0
-            name = ''
-            a = self.get_Digraph().in_degree
-        fig1, sub1 = plt.subplots()
-        a = []
-        for i in range(len(self._deleted_node)):
-            a.append(i)
-        sub1.plot(a, self._largest_component)
-        y = np.array(self._largest_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
-        sub1.text(20, 150, 'The area under curve is ' + str(area))
-        sub1.set_title('Nodes elimination follows order of in_degree')
-        sub1.set_xlabel('Number of Removed Nodes')
-        sub1.set_ylabel('Number of Remaining Nodes')
-        fig1.savefig('graph_in_degree_remove.png')
-
-    def delete_by_outdegree(self):
-        count = 0
-        name = ''
-        a = self.get_Digraph().out_degree
-        while len(a) != 0:
-            for i in a:
-                if i[1] > count:
-                    count = i[1]
-                    name = i[0]
-            self._deleted_node.append(name)
-            self._delete_node.append(int(name))
-            self.get_Giant_Component()
-            self._matrix.deleteNode(self._delete_node)
-            self._delete_node = []
-            self._adjacency_matrix = self._matrix.adjacency_matrix()
-            count = 0
-            name = ''
-            a = self.get_Digraph().out_degree
-        fig1, sub1 = plt.subplots()
-        a = []
-        for i in range(len(self._deleted_node)):
-            a.append(i)
-        sub1.plot(a, self._largest_component)
-        y = np.array(self._largest_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
-        sub1.text(20, 150, 'The area under curve is ' + str(area))
-        sub1.set_title('Nodes elimination follows order of out_degree')
-        sub1.set_xlabel('Number of Removed Nodes')
-        sub1.set_ylabel('Number of Remaining Nodes')
-        fig1.savefig('graph_out_degree_remove.png')
-        print("area =", area)
-
-    def delete_by_eigenvector(self):
-        count = 0
-        name = ''
-        b = len(self.get_Digraph())
-        a = nx.eigenvector_centrality(self.get_Digraph(), tol=1e-03)
-        while b != 0:
-            for i in a:
-                if a[i] > count:
-                    count = a[i]
-                    name = i
-            self._deleted_node.append(name)
-            self._delete_node.append(int(name))
-            self.get_Giant_Component()
-            self._matrix.deleteNode(self._delete_node)
-            self._delete_node = []
-            self._adjacency_matrix = self._matrix.adjacency_matrix()
-            count = 0
-            name = ''
-            if len(self.get_Digraph()) != 0:
-                a = nx.eigenvector_centrality(self.get_Digraph(), tol=1e-03)
-            else:
-                break
-        fig1, sub1 = plt.subplots()
-        a = []
-        for i in range(len(self._deleted_node)):
-            a.append(i)
-        sub1.plot(a, self._largest_component)
-        y = np.array(self._largest_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
-        sub1.text(20, 150, 'The area under curve is ' + str(area))
-        sub1.set_title('Nodes elimination follows order of eigenvector')
-        sub1.set_xlabel('Number of Removed Nodes')
-        sub1.set_ylabel('Number of Remaining Nodes')
-        fig1.savefig('graph_eigenvector_remove.png')
-        print("area =", area)
-
-    def delete_by_closeness(self):
-        count = 0
-        name = ''
-        a = nx.closeness_centrality(self.get_Digraph())
-        while len(a) != 0:
-            for i in a:
-                if a[i] > count:
-                    count = a[i]
-                    name = i
-            self._deleted_node.append(name)
-            self._delete_node.append(int(name))
-            self.get_Giant_Component()
-            self._matrix.deleteNode(self._delete_node)
-            self._delete_node = []
-            self._adjacency_matrix = self._matrix.adjacency_matrix()
-            count = 0
-            name = ''
-            a = nx.closeness_centrality(self.get_Digraph())
-        fig1, sub1 = plt.subplots()
-        a = []
-        for i in range(len(self._deleted_node)):
-            a.append(i)
-        sub1.plot(a, self._largest_component)
-        y = np.array(self._largest_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
-        sub1.text(20, 150, 'The area under curve is ' + str(area))
-        sub1.set_title('Nodes elimination follows order of closeness')
-        sub1.set_xlabel('Number of Removed Nodes')
-        sub1.set_ylabel('Number of Remaining Nodes')
-        fig1.savefig('graph_closeness_remove.png')
-        print("area =", area)
-
-    def delete_by_betweenness(self):
-        count = -1
-        name = ''
-        a = nx.betweenness_centrality(self.get_Digraph())
-        while len(a) != 0:
-            for i in a:
-                if a[i] > count:
-                    count = a[i]
-                    name = i
-            self._deleted_node.append(name)
-            self._delete_node.append(int(name))
-            self.get_Giant_Component()
-            self._matrix.deleteNode(self._delete_node)
-            self._delete_node = []
-            self._adjacency_matrix = self._matrix.adjacency_matrix()
-            count = -1
-            name = ''
-            a = nx.betweenness_centrality(self.get_Digraph())
-        fig1, sub1 = plt.subplots()
-        a = []
-        for i in range(len(self._deleted_node)):
-            a.append(i)
-        sub1.plot(a, self._largest_component)
-        y = np.array(self._largest_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
-        sub1.text(20, 150, 'The area under curve is ' + str(area))
-        sub1.set_title('Nodes elimination follows order of betweenness')
-        sub1.set_xlabel('Number of Removed Nodes')
-        sub1.set_ylabel('Number of Remaining Nodes')
-        fig1.savefig('graph_betweenness_remove.png')
-        print("area =", area)
-
     def plot_distribution(self, parameter, figure_number, title):
+        """
+        Construct distribution plots for each input topology properties on nodes.
+        Parameters:
+        parameter(List): Showing topology metrics on nodes.
+        figure_number(Int): Shows the number of figure.
+        title(String): Shows the title of each plots.
+        """
+
         plt.figure(figure_number)
 
         mean = (np.array(parameter).mean())
@@ -1231,6 +1081,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         return output
 
     def add_button(self):
+        """Add button on canvas and bind the clicks on a button to the left clicks."""
 
         buttonInitial = tk.Button(self._frame_two, text="Initial_Digraph", width=50, activebackground="#33B5E5")
         buttonInitial.bind("<Button-1>", lambda evt: self.plot_Digraph_initial())
@@ -1261,7 +1112,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         buttonEigenvector.bind("<Button-1>",
                                lambda evt: self.plot_ColorMap_eigen(
                                    nx.eigenvector_centrality(self.get_Digraph(), max_iter=600), 'Eigenvector'))
-        print(nx.eigenvector_centrality(self.get_Digraph(), max_iter=600))
         buttonEigenvector.pack()
 
         buttonBetweenness = tk.Button(self._frame_two, text="Betweenness", width=50, activebackground="#33B5E5")
@@ -1298,30 +1148,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         buttonBetweennessHQ.bind("<Button-1>", lambda evt: self.openImage('Betweenness.png'))
         buttonBetweennessHQ.pack()
 
-        DeleteByDegree = tk.Button(self._frame_two, text="Effectiveness_Degree", width=50, activebackground="#33B5E5")
-        DeleteByDegree.bind("<Button-1>", lambda evt: self.delete_by_degree())
-        DeleteByDegree.pack()
-
-        PlotDegree = tk.Button(self._frame_two, text="Effectiveness_In_Degree", width=50, activebackground="#33B5E5")
-        PlotDegree.bind("<Button-1>", lambda evt: self.delete_by_indegree())
-        PlotDegree.pack()
-
-        PlotInDegree = tk.Button(self._frame_two, text="Effectiveness_Out_Degree", width=50, activebackground="#33B5E5")
-        PlotInDegree.bind("<Button-1>", lambda evt: self.delete_by_outdegree())
-        PlotInDegree.pack()
-
-        PlotOutDegree = tk.Button(self._frame_two, text="Effectiveness_Closeness", width=50, activebackground="#33B5E5")
-        PlotOutDegree.bind("<Button-1>", lambda evt: self.delete_by_closeness())
-        PlotOutDegree.pack()
-
-        PlotCloseness = tk.Button(self._frame_two, text="Effectiveness_Eigenvector", width=50, activebackground="#33B5E5")
-        PlotCloseness.bind("<Button-1>", lambda evt: self.delete_by_eigenvector())
-        PlotCloseness.pack()
-
-        PlotEigenvector = tk.Button(self._frame_two, text="Effectiveness_Betweenness", width=50, activebackground="#33B5E5")
-        PlotEigenvector.bind("<Button-1>", lambda evt: self.delete_by_betweenness())
-        PlotEigenvector.pack()
-
         PlotDegree_Robustness = tk.Button(self._frame_two, text="Robustness_Degree", width=50,
                                     activebackground="#33B5E5")
         PlotDegree_Robustness.bind("<Button-1>", lambda evt: self.delete_by_degree_connected())
@@ -1355,6 +1181,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         Indegree = self.det_indegree()
         Outdegree = self.det_outdegree()
         Degree = self.det_degree(Indegree,Outdegree)
+        print(Degree)
         Degree_Distribution = tk.Button(self._frame_two, text="Degree_Distribution", width=50,
                                           activebackground="#33B5E5")
         Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(Degree,1,"Degree_Distribution"))
@@ -1405,7 +1232,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for m in range(len(nx.closeness_centrality(self.get_Digraph()))):
             closeness_centrality_values.append(nx.closeness_centrality(self.get_Digraph()).get(str(m)))
         return closeness_centrality_values
+
     def entryValueRemove(self):
+        """Get the type-in texts (nodes need to be eliminated) and store in a list."""
         aa = self._entry.get().split(',')
         for i in aa:
             self._delete_node.append(i)
