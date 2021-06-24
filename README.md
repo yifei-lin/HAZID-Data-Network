@@ -1,6 +1,6 @@
 # A software for the conversion of hazard identification data to causal networks for supporting risk management decision making
 ## Requirements
-* Python 3.6
+* Python 3.6 +
   * link path: C:\Users\USERNAME\AppData\Local\Programs\Python\PythonXX\
 * Install pip
   * `py -m get-pip.py`
