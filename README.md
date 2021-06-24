@@ -7,7 +7,7 @@
   * `get-pip`
 * Install python packages:
   * `pip install -r requirements.txt`
-  * `pip install xlrd`
+  * `pip install openpyxl`
   * Install pygraphviz: https://pygraphviz.github.io/documentation/stable/install.html#windows-install  
   * link path: `C:\Program Files (x86)\Graphviz\bin\`
   * Install Visual C/C++: https://visualstudio.microsoft.com/visual-cpp-build-tools/
