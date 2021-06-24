@@ -29,4 +29,4 @@
 * For Adjacency_matrix saving:
   * Please save the matrix in this format: XXXX.csv. Then open it with Microsoft Excel.
 ## Notes and Acknowledgements
-The code is developed using Python written by Yifei Lin `contact: b.seligmann@uq.edu.au`. The project is proposed and supervised by Dr Ben Seligmann `contact: b.seligmann@uq.edu.au` and Dr David Lange `contact: d.lange@uq.edu.au`.
+The code is developed using Python written by Yifei Lin `contact: yifei.lin@uqconnect.edu.au`. The project is proposed and supervised by Dr Ben Seligmann `contact: b.seligmann@uq.edu.au` and Dr David Lange `contact: d.lange@uq.edu.au`.
