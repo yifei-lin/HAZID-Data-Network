@@ -2,8 +2,9 @@
 ## Requirements
 * Python 3.6 +
   * link path: `C:\Users\USERNAME\AppData\Local\Programs\Python\PythonXX\`
+* For windows install add `python -m`/`py -m` before commands
 * Install pip
-  * `py -m get-pip.py`
+  * `get-pip.py`
 * Install python packages:
   * `pip install -r requirements.txt`
   * `pip install xlrd`
