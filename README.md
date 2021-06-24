@@ -1,13 +1,14 @@
 # A software for the conversion of hazard identification data to causal networks for supporting risk management decision making
 ## Requirements
 * Python 3.6 +
-  * link path: C:\Users\USERNAME\AppData\Local\Programs\Python\PythonXX\
+  * link path: `C:\Users\USERNAME\AppData\Local\Programs\Python\PythonXX\`
 * Install pip
   * `py -m get-pip.py`
 * Install python packages:
   * `pip install -r requirements.txt`
   * `pip install xlrd`
-  * `https://pygraphviz.github.io/documentation/stable/install.html#windows-install` for pygraphviz install, link path: C:\Program Files (x86)\Graphviz\bin\
+  * `https://pygraphviz.github.io/documentation/stable/install.html#windows-install` for pygraphviz install, link path: 
+  * `C:\Program Files (x86)\Graphviz\bin\`
   * install Visual C/C++: https://visualstudio.microsoft.com/visual-cpp-build-tools/
   * `pip install graphviz`
   * `py -m pip install --global-option=build_ext --global-option="-IC:\Program Files (x86)\Graphviz\include" --global-option="-LC:\Program Files (x86)\Graphviz\lib" --no-cache-dir pygraphviz`
