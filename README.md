@@ -11,7 +11,7 @@
   * link path: `C:\Program Files (x86)\Graphviz\bin\`
   * Install Visual C/C++: https://visualstudio.microsoft.com/visual-cpp-build-tools/
   * `pip install graphviz`
-  * `py -m pip install --global-option=build_ext --global-option="-IC:\Program Files (x86)\Graphviz\include" --global-option="-LC:\Program Files (x86)\Graphviz\lib" --no-cache-dir pygraphviz`
+  * `pip install --global-option=build_ext --global-option="-IC:\Program Files (x86)\Graphviz\include" --global-option="-LC:\Program Files (x86)\Graphviz\lib" --no-cache-dir pygraphviz`
 * Good to go!
 ## Usages
 * For input format:
