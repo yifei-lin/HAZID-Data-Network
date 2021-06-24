@@ -7,9 +7,9 @@
 * Install python packages:
   * `pip install -r requirements.txt`
   * `pip install xlrd`
-  * `https://pygraphviz.github.io/documentation/stable/install.html#windows-install` for pygraphviz install, link path: 
-  * `C:\Program Files (x86)\Graphviz\bin\`
-  * install Visual C/C++: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+  * Install pygraphviz: https://pygraphviz.github.io/documentation/stable/install.html#windows-install  
+  * link path: `C:\Program Files (x86)\Graphviz\bin\`
+  * Install Visual C/C++: https://visualstudio.microsoft.com/visual-cpp-build-tools/
   * `pip install graphviz`
   * `py -m pip install --global-option=build_ext --global-option="-IC:\Program Files (x86)\Graphviz\include" --global-option="-LC:\Program Files (x86)\Graphviz\lib" --no-cache-dir pygraphviz`
 * Good to go!
