@@ -1,9 +1,17 @@
 # A software for the conversion of hazard identification data to causal networks for supporting risk management decision making
 ## Requirements
 * Python 3.6
+  * link path: C:\Users\USERNAME\AppData\Local\Programs\Python\PythonXX\
+* Install pip
+  * `py -m get-pip.py`
 * Install python packages:
   * `pip install -r requirements.txt`
-  * `py -m pip install -r requirements.txt`
+  * `pip install xlrd`
+  * `https://pygraphviz.github.io/documentation/stable/install.html#windows-install` for pygraphviz install, link path: C:\Program Files (x86)\Graphviz\bin\
+  * install Visual C/C++: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+  * `pip install graphviz`
+  * `py -m pip install --global-option=build_ext --global-option="-IC:\Program Files (x86)\Graphviz\include" --global-option="-LC:\Program Files (x86)\Graphviz\lib" --no-cache-dir pygraphviz`
+* Good to go!
 ## Usages
 * For input format:
   * Please keep the reading network elements inside first three columns.
@@ -19,4 +27,4 @@
 * For Adjacency_matrix saving:
   * Please save the matrix in this format: XXXX.csv. Then open it with Microsoft Excel.
 ## Notes and Acknowledgements
-The code is developed using Python and the idea comes from 
+The code is developed using Python written by Yifei Lin `contact: b.seligmann@uq.edu.au`. The project is proposed and supervised by Dr Ben Seligmann `contact: b.seligmann@uq.edu.au` and Dr David Lange `contact: d.lange@uq.edu.au`.
