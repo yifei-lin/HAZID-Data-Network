@@ -4,7 +4,7 @@
   * link path: `C:\Users\USERNAME\AppData\Local\Programs\Python\PythonXX\`
 * For windows install add `python -m`/`py -m` before commands
 * Install pip
-  * `get-pip.py`
+  * `get-pip`
 * Install python packages:
   * `pip install -r requirements.txt`
   * `pip install xlrd`
