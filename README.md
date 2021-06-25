@@ -8,8 +8,8 @@
 * Install python packages:
   * `pip install -r requirements.txt`
   * `pip install openpyxl`
-  * Install pygraphviz: https://pygraphviz.github.io/documentation/stable/install.html#windows-install  
-  * link path: `C:\Program Files (x86)\Graphviz\bin\`
+  * Install pygraphviz: https://pygraphviz.github.io/documentation/stable/install.html 
+  * link path for windows: `C:\Program Files (x86)\Graphviz\bin\` 
   * Install Visual C/C++: https://visualstudio.microsoft.com/visual-cpp-build-tools/
   * `pip install graphviz`
   * `pip install --global-option=build_ext --global-option="-IC:\Program Files (x86)\Graphviz\include" --global-option="-LC:\Program Files (x86)\Graphviz\lib" --no-cache-dir pygraphviz` Might be different path, check where the Graphviz file is located.
