@@ -3,8 +3,8 @@
 * Python 3.6 +
   * link path: `C:\Users\USERNAME\AppData\Local\Programs\Python\PythonXX\`
 * For windows install add `python -m`/`py -m` before commands
-* Install pip
-  * Move get-pip.py file into the python folder, run `get-pip`
+* Install pip: https://www.liquidweb.com/kb/install-pip-windows/
+  * `get-pip`
 * Install python packages:
   * `pip install -r requirements.txt`
   * `pip install openpyxl`
