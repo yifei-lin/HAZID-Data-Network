@@ -10,10 +10,10 @@ import xlsxwriter
 import re
 import tkinter as tk
 import matplotlib
+
 matplotlib.use('TkAgg')
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
 
 
 class Matrix():
@@ -469,6 +469,7 @@ class Matrix():
     def get_node_ID(self):
         return self._node_ID
 
+
 class digraphPlot(tk.Canvas, tk.Frame):
 
     def __init__(self, master, delete_node=[], node_weight={}, node_ID={}):
@@ -509,25 +510,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._deleted_node = []
         self._node_neighbor = self.neighbor_of_nodes()
         self._largest_connected_component = []
-        self.node_info()
-
-
-    def node_info(self):
-
-        """(XLSX file): Excel sheet contains node_ID and Info."""
-
-        workbook = xlsxwriter.Workbook('NODEs.xlsx')
-        worksheet = workbook.add_worksheet()
-        row = 0
-        col = 0
-
-        for i in self._node_ID.keys():
-            row += 1
-            worksheet.write(row, col, i)
-            worksheet.write(row, col + 1, self._node_ID[i])
-            row += 1
-
-        workbook.close()
 
     def add_menu(self):
         """Add the menu function in the master widget."""
@@ -577,7 +559,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._deleted_node = []
         self._largest_connected_component = []
 
-
     def save_matrix(self):
         if self._filename is None:
             filename = filedialog.asksaveasfilename()
@@ -615,6 +596,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     G.add_edge(a[i], a[j], color='black', weight=int(self._adjacency_matrix[i][j]))
                 elif self._adjacency_matrix[i][j] == 6:
                     G.add_edge(a[i], a[j], color='purple', weight=int(self._adjacency_matrix[i][j]))
+                elif self._adjacency_matrix[i][j] > 6:
+                    G.add_edge(a[i], a[j], color='grey', weight=int(self._adjacency_matrix[i][j]))
         return G
 
     def plot_Digraph_initial(self):
@@ -727,7 +710,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 nodes[i] = node_neighbor
         return nodes
 
-
     def new(self, saved_list, component, index):
         """ Delete the node inside the node_no from adjacency matrix.
 
@@ -771,7 +753,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 saved_list = []
                 self.new(saved_list, component, 0)
 
-
     def delete_by_degree_connected(self):
         """
         Delete all the nodes by the descending order of value of degree.
@@ -787,7 +768,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     name = i[0]
             self._deleted_node.append(name)
             self._delete_node.append(int(name))
-            self.new([],component,0)
+            self.new([], component, 0)
             max_length = max([(len(x)) for x in component])
             self._largest_connected_component.append(max_length)
             component = []
@@ -849,7 +830,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
         sub1.set_ylabel('Size of Remaining Largest Component')
         fig1.savefig('Robustness_In_Degree.png')
         print("area =", area)
-
 
     def delete_by_Out_degree_connected(self):
         """ Delete all the nodes by the descending order of value of Out Degree."""
@@ -1080,8 +1060,185 @@ class digraphPlot(tk.Canvas, tk.Frame):
             output.append(x + y)
         return output
 
+    def excel_Gather(self):
+
+        """(XLSX file): Excel sheet contains node_ID and Info."""
+
+        workbook = xlsxwriter.Workbook('NODEs.xlsx')
+        worksheet_nodes = workbook.add_worksheet('nodes_ID')
+        worksheet_matrix = workbook.add_worksheet('Adjacency_Matrix')
+        worksheet_colormap = workbook.add_worksheet('Colormaps')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_distribution = workbook.add_worksheet('Distribution')
+        row = 0
+        col = 0
+        degree_1 = self._digarph_normal.degree
+        indegree_1 = self._digarph_normal.in_degree
+        outdegree_1 = self._digarph_normal.out_degree
+        Betweenness_1 = nx.betweenness_centrality(self.get_Digraph())
+        Eigenvector_1 = nx.eigenvector_centrality(self.get_Digraph(), max_iter=600)
+        Closeness_1 = nx.closeness_centrality(self.get_Digraph())
+        worksheet_nodes.write(row, col + 2, 'Degree')
+        worksheet_nodes.write(row, col + 3, 'In Degree')
+        worksheet_nodes.write(row, col + 4, 'Out Degree')
+        worksheet_nodes.write(row, col + 5, 'Betweenness')
+        worksheet_nodes.write(row, col + 6, 'Eigenvector')
+        worksheet_nodes.write(row, col + 7, 'Closeness')
+
+        # Node information
+        for i in self._node_ID.keys():
+            worksheet_nodes.write(row + 1, col, i)
+            worksheet_nodes.write(row + 1, col + 1, self._node_ID[i])
+            # Degree
+            worksheet_nodes.write(row + 1, col + 2, degree_1(str(self._node_ID[i])))
+            # InDegree
+            worksheet_nodes.write(row + 1, col + 3, indegree_1(str(self._node_ID[i])))
+            # OutDegree
+            worksheet_nodes.write(row + 1, col + 4, outdegree_1(str(self._node_ID[i])))
+            # Betweenness
+            worksheet_nodes.write(row + 1, col + 5,
+                                  Betweenness_1.get((str(self._node_ID[i]))))
+            # Eigenvector
+            worksheet_nodes.write(row + 1, col + 6, Eigenvector_1.get((str(self._node_ID[i]))))
+            # Closeness
+            worksheet_nodes.write(row + 1, col + 7,
+                                  Closeness_1.get((str(self._node_ID[i]))))
+            row += 1
+
+        row1 = 0
+        col1 = 1
+
+        #Adjacency_Matrix
+        for i in range(len(self._adjacency_matrix)):
+            worksheet_matrix.write(row1, col1, i)
+            col1 += 1
+        row1 = 1
+        col1 = 0
+        for j in range(len(self._adjacency_matrix)):
+            worksheet_matrix.write(row1, col1, j)
+            for k in range(len(self._adjacency_matrix)):
+                worksheet_matrix.write(row1, col1 + 1, self._adjacency_matrix[k][j])
+                col1 += 1
+            row1 += 1
+            col1 = 0
+
+        # Colormap
+        # Initial
+        worksheet_colormap.write('A1', 'Initial_Digraph:')
+        self.plot_Digraph_initial()
+        worksheet_colormap.insert_image('D1', 'initial_Digraph.png')
+
+        # Degree
+        worksheet_colormap.write('A30', 'Degree_Colormap:')
+        self.plot_ColorMap(self.get_dict(degree_1), 'Degree')
+        worksheet_colormap.insert_image('D30', 'Degree.png')
+
+        # InDegree
+        worksheet_colormap.write('A60', 'In_Degree_Colormap:')
+        self.plot_ColorMap(self.get_dict(indegree_1), 'In_Degree')
+        worksheet_colormap.insert_image('D60', 'Degree.png')
+
+        # OutDegree
+        worksheet_colormap.write('M1', 'Out_Degree_Colormap:')
+        self.plot_ColorMap(self.get_dict(outdegree_1), 'Out_Degree')
+        worksheet_colormap.insert_image('P1', 'Degree.png')
+
+        # Eigenvector
+        worksheet_colormap.write('M30', 'Eigenvector_Colormap:')
+        self.plot_ColorMap(Eigenvector_1, 'Eigenvector')
+        worksheet_colormap.insert_image('P30', 'Eigenvector.png')
+
+        # Betweenness
+        worksheet_colormap.write('M60', 'Betweenness_Colormap:')
+        self.plot_ColorMap(Betweenness_1, 'Betweenness')
+        worksheet_colormap.insert_image('P60', 'Betweenness.png')
+
+        # Closeness
+        worksheet_colormap.write('Y1', 'Closeness_Colormap:')
+        self.plot_ColorMap(Closeness_1, 'Closeness')
+        worksheet_colormap.insert_image('AA1', 'Closeness.png')
+
+        '''
+        # Robustness
+        # Degree
+        worksheet_robustness.write('A1', 'Degree_Robustness:')
+        self.delete_by_degree_connected()
+        worksheet_colormap.insert_image('D1', 'Robustness_Degree.png')
+
+        # Indegree
+        worksheet_robustness.write('A30', 'In_Degree_Robustness')
+        self.delete_by_In_degree_connected()
+        worksheet_colormap.insert_image('D30', 'Robustness_In_Degree.png')
+
+        # Outdegree
+        worksheet_robustness.write('A60', 'Out_Degree_Robustness')
+        self.delete_by_Out_degree_connected()
+        worksheet_colormap.insert_image('D60', 'Robustness_Out_Degree.png')
+
+        # Eigenvector
+        worksheet_robustness.write('M1', 'Eigenvector_Robustness')
+        self.delete_by_Eigenvector_connected()
+        worksheet_colormap.insert_image('P1', 'Robustness_Eigenvector.png')
+
+        # Betweenness
+        worksheet_robustness.write('M30', 'Betweenness_Robustness')
+        self.delete_by_Betweenness_connected()
+        worksheet_colormap.insert_image('P30', 'Robustness_Betweenness.png')
+
+        # Closeness
+        worksheet_robustness.write('M60', 'Closeness_Robustness')
+        self.delete_by_Closeness_connected()
+        worksheet_colormap.insert_image('P60', 'Robustness_Closeness.png')
+        '''
+
+        Indegree = self.det_indegree()
+        Outdegree = self.det_outdegree()
+        Degree = self.det_degree(Indegree, Outdegree)
+        betweenness_values = []
+        closeness_centrality_values = []
+        Eigenvector_Centrality_values = []
+
+        # Distribution
+        # Degree
+        worksheet_distribution.write('A1', 'Degree_Distribution:')
+        self.plot_distribution(Degree, 1, "Degree_Distribution")
+        worksheet_distribution.insert_image('D1', 'Degree_Distribution.png')
+
+        # Indegree
+        worksheet_distribution.write('A30', 'In_Degree_Distribution')
+        self.plot_distribution(Indegree, 2, "In_Degree_Distribution")
+        worksheet_distribution.insert_image('D30', 'In_Degree_Distribution.png')
+
+        # Outdegree
+        worksheet_distribution.write('A60', 'Out_Degree_Distribution')
+        self.plot_distribution(Outdegree, 3, "Out_Degree_Distribution")
+        worksheet_distribution.insert_image('D60', 'Out_Degree_Distribution.png')
+
+        # Eigenvector
+        worksheet_distribution.write('P1', 'Eigenvector_Distribution')
+        self.plot_distribution(self.det_eigenvector_one(Eigenvector_Centrality_values), 4, "Eigenvector_Distribution")
+        worksheet_distribution.insert_image('S1', 'Eigenvector_Distribution.png')
+
+        # Betweenness
+        worksheet_distribution.write('P30', 'Betweenness_Distribution')
+        self.plot_distribution(self.det_betweenness_one(betweenness_values), 5, "Betweenness_Distribution")
+        worksheet_distribution.insert_image('S30', 'Betweenness_Distribution.png')
+
+        # Closeness
+        worksheet_distribution.write('P60', 'Closeness_Distribution')
+        self.plot_distribution(self.det_closeness_one(closeness_centrality_values), 6, "Closeness_Distribution")
+        worksheet_distribution.insert_image('S60', 'Closeness_Distribution.png')
+
+        workbook.close()
+
+
     def add_button(self):
         """Add button on canvas and bind the clicks on a button to the left clicks."""
+
+        buttonGatherExcel = tk.Button(self._frame_two, text="Results", width=50, activebackground="#33B5E5")
+        buttonGatherExcel.bind("<Button-1>", lambda evt: self.excel_Gather())
+        buttonGatherExcel.pack()
+
 
         buttonInitial = tk.Button(self._frame_two, text="Initial_Digraph", width=50, activebackground="#33B5E5")
         buttonInitial.bind("<Button-1>", lambda evt: self.plot_Digraph_initial())
@@ -1149,7 +1306,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         buttonBetweennessHQ.pack()
 
         PlotDegree_Robustness = tk.Button(self._frame_two, text="Robustness_Degree", width=50,
-                                    activebackground="#33B5E5")
+                                          activebackground="#33B5E5")
         PlotDegree_Robustness.bind("<Button-1>", lambda evt: self.delete_by_degree_connected())
         PlotDegree_Robustness.pack()
 
@@ -1180,55 +1337,59 @@ class digraphPlot(tk.Canvas, tk.Frame):
 
         Indegree = self.det_indegree()
         Outdegree = self.det_outdegree()
-        Degree = self.det_degree(Indegree,Outdegree)
-        print(Degree)
+        Degree = self.det_degree(Indegree, Outdegree)
         Degree_Distribution = tk.Button(self._frame_two, text="Degree_Distribution", width=50,
-                                          activebackground="#33B5E5")
-        Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(Degree,1,"Degree_Distribution"))
+                                        activebackground="#33B5E5")
+        Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(Degree, 1, "Degree_Distribution"))
         Degree_Distribution.pack()
 
         In_Degree_Distribution = tk.Button(self._frame_two, text="Indegree_Distribution", width=50,
-                                          activebackground="#33B5E5")
-        In_Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(self.det_indegree(),2,"In_Degree_Distribution"))
+                                           activebackground="#33B5E5")
+        In_Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(Indegree, 2,
+                                                                                     "In_Degree_Distribution"))
         In_Degree_Distribution.pack()
 
         Out_Degree_Distribution = tk.Button(self._frame_two, text="Outdegree_Distribution", width=50,
-                                          activebackground="#33B5E5")
-        Out_Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(self.det_outdegree(),3,"Out_Degree_Distribution"))
+                                            activebackground="#33B5E5")
+        Out_Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(Outdegree, 3,
+                                                                                      "Out_Degree_Distribution"))
         Out_Degree_Distribution.pack()
 
         betweenness_values = []
         closeness_centrality_values = []
         Eigenvector_Centrality_values = []
 
-
         closeness_centrality_Distribution = tk.Button(self._frame_two, text="Closeness_Distribution", width=50,
-                                          activebackground="#33B5E5")
-        closeness_centrality_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(self.det_closeness_one(closeness_centrality_values),4,"Closeness_Distribution"))
+                                                      activebackground="#33B5E5")
+        closeness_centrality_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(
+            self.det_closeness_one(closeness_centrality_values), 4, "Closeness_Distribution"))
         closeness_centrality_Distribution.pack()
 
         Eigenvector_Distribution = tk.Button(self._frame_two, text="Eigenvector_Distribution", width=50,
-                                          activebackground="#33B5E5")
-        Eigenvector_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(self.det_eigenvector_one(Eigenvector_Centrality_values), 5, "Eigenvector_Distribution"))
+                                             activebackground="#33B5E5")
+        Eigenvector_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(
+            self.det_eigenvector_one(Eigenvector_Centrality_values), 5, "Eigenvector_Distribution"))
         Eigenvector_Distribution.pack()
 
         Betweenness_Distribution = tk.Button(self._frame_two, text="Betweenness_Distribution", width=50,
-                                          activebackground="#33B5E5")
-        Betweenness_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(self.det_betweenness_one(betweenness_values),6,"Betweenness_Distribution"))
+                                             activebackground="#33B5E5")
+        Betweenness_Distribution.bind("<Button-1>",
+                                      lambda evt: self.plot_distribution(self.det_betweenness_one(betweenness_values),
+                                                                         6, "Betweenness_Distribution"))
         Betweenness_Distribution.pack()
 
-
-    def det_betweenness_one(self,betweenness_values):
+    def det_betweenness_one(self, betweenness_values):
         for k in range(len(nx.betweenness_centrality(self.get_Digraph()))):
             betweenness_values.append(nx.betweenness_centrality(self.get_Digraph()).get(str(k)))
         return betweenness_values
 
-    def det_eigenvector_one(self,Eigenvector_Centrality_values):
-        for n in range(len(nx.eigenvector_centrality(self.get_Digraph(),tol=1e-03,max_iter=600))):
-            Eigenvector_Centrality_values.append(nx.eigenvector_centrality(self.get_Digraph(),tol=1e-03,max_iter=600).get(str(n)))
+    def det_eigenvector_one(self, Eigenvector_Centrality_values):
+        for n in range(len(nx.eigenvector_centrality(self.get_Digraph(), tol=1e-03, max_iter=600))):
+            Eigenvector_Centrality_values.append(
+                nx.eigenvector_centrality(self.get_Digraph(), tol=1e-03, max_iter=600).get(str(n)))
         return Eigenvector_Centrality_values
 
-    def det_closeness_one(self,closeness_centrality_values):
+    def det_closeness_one(self, closeness_centrality_values):
         for m in range(len(nx.closeness_centrality(self.get_Digraph()))):
             closeness_centrality_values.append(nx.closeness_centrality(self.get_Digraph()).get(str(m)))
         return closeness_centrality_values
@@ -1243,7 +1404,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
 
 
 if __name__ == "__main__":
-
     ##plot initial digraph
     root = tk.Tk()
     root.geometry("1600x1600")
