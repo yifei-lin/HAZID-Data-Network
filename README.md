@@ -14,6 +14,22 @@
   * `pip install graphviz`
   * `pip install --global-option=build_ext --global-option="-IC:\Program Files (x86)\Graphviz\include" --global-option="-LC:\Program Files (x86)\Graphviz\lib" --no-cache-dir pygraphviz` Might be different path, check where the Graphviz file is located.
 * Good to go!
+## Alternative Installation using Anaconda (Windows)
+Install Anaconda: https://www.anaconda.com/products/individual-d
+Start `Anaconda Prompt (Anaconda3)`
+```
+cd <directory where caneta.yml is>
+conda env create -f caneta.yml --name caneta
+```
+Now launch `Spyder (caneta)` from windows start menu
+##Alternative Installation No. 2 using Anaconda (Windows and Linux)
+This doesn't install as many packages as using the yml approach above, which you may see as a good thing or a bad thing.... Some of the packages installed are probably not strictly required either.
+Install Anaconda: https://www.anaconda.com/products/individual-d
+Start `Anaconda Prompt (Anaconda3)`
+```
+conda create -c conda-forge --name caneta-test -y python spyder matplotlib seaborn pandas bokeh networkx pygraphviz graphviz numpy xlsxwriter xlrd scipy scikit-learn jupyter openpyxl pillow pip pyqt statsmodels tqdm
+```
+Now launch `Spyder (caneta)`
 ## Usages
 * For input format:
   * Please keep the reading network elements inside first three columns.
@@ -29,4 +45,4 @@
 * For Adjacency_matrix saving:
   * Please save the matrix in this format: XXXX.csv. Then open it with Microsoft Excel.
 ## Notes and Acknowledgements
-The code is developed using Python written by Yifei Lin `contact: yifei.lin@uqconnect.edu.au`. The project is proposed and supervised by Dr Ben Seligmann `contact: b.seligmann@uq.edu.au` and Dr David Lange `contact: d.lange@uq.edu.au`.
+The code is developed using Python written by Yifei Lin `contact: yifei.lin@uq.edu.au`. The project is proposed and supervised by Associate Professor Steven Micklethwaite `s.micklethwaite@uq.edu.au`, Dr Ben Seligmann `contact: b.seligmann@uq.edu.au` and Dr David Lange `contact: d.lange@uq.edu.au`.
