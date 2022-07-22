@@ -16,6 +16,7 @@
 * Good to go!
 ## Alternative Installation using Anaconda (Windows)
 Install Anaconda: https://www.anaconda.com/products/individual-d
+
 Start `Anaconda Prompt (Anaconda3)`
 ```
 cd <directory where caneta.yml is>
