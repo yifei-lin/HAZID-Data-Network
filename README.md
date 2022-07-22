@@ -22,9 +22,11 @@ cd <directory where caneta.yml is>
 conda env create -f caneta.yml --name caneta
 ```
 Now launch `Spyder (caneta)` from windows start menu
-##Alternative Installation No. 2 using Anaconda (Windows and Linux)
+## Alternative Installation No. 2 using Anaconda (Windows and Linux)
 This doesn't install as many packages as using the yml approach above, which you may see as a good thing or a bad thing.... Some of the packages installed are probably not strictly required either.
+
 Install Anaconda: https://www.anaconda.com/products/individual-d
+
 Start `Anaconda Prompt (Anaconda3)`
 ```
 conda create -c conda-forge --name caneta-test -y python spyder matplotlib seaborn pandas bokeh networkx pygraphviz graphviz numpy xlsxwriter xlrd scipy scikit-learn jupyter openpyxl pillow pip pyqt statsmodels tqdm
