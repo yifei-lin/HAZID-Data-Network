@@ -646,11 +646,11 @@ class digraphPlot(tk.Canvas, tk.Frame):
         elif self.clicked.get() == "Eigenvector":
             self.plot_ColorMap_eigen(nx.eigenvector_centrality(self._digraph_normal, max_iter=600), 'Eigenvector')
         elif self.clicked.get() == "In_Closeness":
-            self.plot_ColorMap(self.plot_ColorMap(nx.closeness_centrality(self._digraph_normal)), 'In_Closeness')
+            self.plot_ColorMap(nx.closeness_centrality(self._digraph_normal), 'In_Closeness')
         elif self.clicked.get() == "Out_Closeness":
-            self.plot_ColorMap(self.plot_ColorMap(nx.closeness_centrality(self._digraph_normal.reverse())), 'Out_Closeness')
+            self.plot_ColorMap(nx.closeness_centrality(self._digraph_normal.reverse()), 'Out_Closeness')
         elif self.clicked.get() == "Betweenness":
-            self.plot_ColorMap(self.plot_ColorMap(nx.betweenness_centrality(self._digraph_normal),'Betweenness'))
+            self.plot_ColorMap(nx.betweenness_centrality(self._digraph_normal),'Betweenness')
         elif self.clicked.get() == "Relative_Likelihood":
             self.plot_ColorMap(self.det_relative_likelihood(), 'Relative_Likelihood')
         elif self.clicked.get() == "Causal_Contribution":
@@ -1060,7 +1060,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1111,7 +1111,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1164,7 +1164,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1217,7 +1217,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1272,7 +1272,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1326,7 +1326,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1385,7 +1385,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1440,7 +1440,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1495,7 +1495,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1550,7 +1550,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
@@ -1605,7 +1605,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for i in self._deleted_node:
             worksheet_robustness.write(row,0, str(i))
             row+=1
-        for j in self._largest_connected_component:
+        for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
