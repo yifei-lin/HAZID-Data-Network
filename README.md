@@ -45,7 +45,6 @@ Now launch `Spyder (caneta)`
   * After a new image (.png) file is produced, before next step, please save it into different name or move it to other places.
 * For node elimination:
   * After clicking on robustness_topology properties (Degree, InDegree... etc.), network is disappeared. Please import excel file again for further movements.
-* For Adjacency_matrix saving:
-  * Please save the matrix in this format: XXXX.csv. Then open it with Microsoft Excel.
+
 ## Notes and Acknowledgements
 The code is developed using Python written by Yifei Lin `contact: yifei.lin@uq.edu.au`. The project is proposed and supervised by Associate Professor Steven Micklethwaite `s.micklethwaite@uq.edu.au`, Dr Ben Seligmann `contact: b.seligmann@uq.edu.au` and Dr David Lange `contact: d.lange@uq.edu.au`.
