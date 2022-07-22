@@ -45,6 +45,7 @@ Now launch `Spyder (caneta)`
   * After a new image (.png) file is produced, before next step, please save it into different name or move it to other places.
 * For node elimination:
   * After clicking on robustness_topology properties (Degree, InDegree... etc.), network is disappeared. Please import excel file again for further movements.
-
+* Edge Weight:
+  * Red : 1, Blue : 2, Green : 3, Yellow : 4, Black : 5, Purple : 6, Grey : 7, Orange : 8, Fuchsia : 9, Olive: 10, Cyan : 11, Brown : 12
 ## Notes and Acknowledgements
 The code is developed using Python written by Yifei Lin `contact: yifei.lin@uq.edu.au`. The project is proposed and supervised by Associate Professor Steven Micklethwaite `s.micklethwaite@uq.edu.au`, Dr Ben Seligmann `contact: b.seligmann@uq.edu.au` and Dr David Lange `contact: d.lange@uq.edu.au`.
