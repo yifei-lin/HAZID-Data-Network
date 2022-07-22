@@ -718,8 +718,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
             for i in range(len(Causal_Contribution)):
                 Causal_Contribution_list.append(Causal_Contribution.get(str(i)))
             self.plot_distribution(Causal_Contribution_list, 12, 'Causal_Contribution')
-
-
             
     def show_robustness_connected(self):
         if self.clicked.get() == "Degree":
@@ -771,8 +769,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         elif self.clicked.get() == "Relative_Likelihood":
             self.delete_by_relative_likelihood_remaining()
         elif self.clicked.get() == "Causal_Contribution":
-            self.delete_by_causal_contribution_remaining()
-        
+            self.delete_by_causal_contribution_remaining() 
             
     def save_matrix(self):
         if self._filename is None:
@@ -787,6 +784,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         res = dict((v,k) for k,v in a.items())
         df_IDs = pd.DataFrame.from_dict(res,orient='index',columns=['Description'])
         df_IDs.to_csv(filename + "_lookup.csv")
+    
     def quit(self):
         """Execute the program"""
         self._master.destroy()
@@ -1556,8 +1554,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
-        
-        
+             
     def delete_by_causal_contribution_remaining(self):
         """ Delete all the nodes by the descending order of value of causal_contribution."""
         count = -1
@@ -1612,8 +1609,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
-
-        
+     
 ### Robustness of network focusing on largest connected component
     def delete_by_degree_connected(self):
         """
@@ -1669,7 +1665,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
             row2+=1
         workbook.close()
                     
-
     def delete_by_In_degree_connected(self):
         """ Delete all the nodes by the descending order of value of In Degree."""
         count = -1
@@ -2189,8 +2184,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
         workbook.close()
-        
-        
+         
     def delete_by_causal_contribution_connected(self):
         """ Delete all the nodes by the descending order of value of causal_contribution."""
         count = -1
@@ -2442,7 +2436,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 output[str(i)] = 0
         return output
     
-
     def excel_Gather(self):
 
         """(XLSX file): Excel sheet contains node_ID and Info."""
@@ -2723,7 +2716,6 @@ class digraphPlot(tk.Canvas, tk.Frame):
 
         workbook.close()
         
-    
     def add_button(self):
         """Add button on canvas and bind the clicks on a button to the left clicks."""
 
