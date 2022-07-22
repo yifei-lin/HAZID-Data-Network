@@ -1,3 +1,4 @@
+from tkinter import *
 from tkinter import filedialog
 import networkx as nx
 import pandas as pd
@@ -10,6 +11,8 @@ import xlsxwriter
 import re
 import tkinter as tk
 import matplotlib
+from datetime import datetime
+from tqdm import tqdm
 
 matplotlib.use('TkAgg')
 import numpy as np
@@ -60,7 +63,7 @@ class Matrix():
             bracketOR(Int): Initial set to zero.
             bracketAND(Int): Initial set to zero.
         """
-        if 'AND' not in node and 'OR' not in node:
+        if ' AND ' not in node and ' OR ' not in node:
             if '(' in node and ')' not in node:
                 nodesDeviation = node.split('(')[1]
                 nodeWeight[nodesDeviation] = weight
@@ -73,7 +76,7 @@ class Matrix():
                 nodeWeight[nodesDDeviation] = weight
             else:
                 nodeWeight[node] = weight
-        if 'OR' in node:
+        if ' OR ' in node:
             if bracketOR == 0:
                 ## split OR outside brackets
                 a = re.split(r' OR \s*(?![^()]*\))', node)
@@ -95,7 +98,7 @@ class Matrix():
                                              bracketAND + 1)
                         else:
                             self.splitWeight(nodeWeight, i, weight + len(a) - 1, bracketOR + 1, bracketAND + 1)
-        if 'AND' in node and 'OR' not in node:
+        if ' AND ' in node and ' OR ' not in node:
             if bracketAND == 0:
                 ## split AND outside brackets
                 a = re.split(r' AND \s*(?![^()]*\))', node)
@@ -109,7 +112,7 @@ class Matrix():
                 for j in nodesDeviation:
                     self.splitWeight(nodeWeight, j, weight + len(nodesDeviation) - 1, bracketOR, bracketAND)
 
-    def splitID(self, node, bracketOR, bracketAND):
+    def splitID(self, node, bracketOR, bracketAND,splitID_recursion_count=0):
         """ Split input node string and number them.
 
         Parameters:
@@ -117,6 +120,9 @@ class Matrix():
             bracketOR(Int): Initial set to zero.
             bracketAND(Int): Initial set to zero.
         """
+        if splitID_recursion_count>100:
+            print("SplitID() node: {}".format(node))
+            raise NameError("splitID() Recursion Error")
         count = 0
         if 'AND' not in node and 'OR' not in node:
             if '(' in node and ')' not in node:
@@ -149,24 +155,24 @@ class Matrix():
                 ## split OR outside brackets
                 a = re.split(r' OR \s*(?![^()]*\))', node)
                 for i in a:
-                    self.splitID(i, bracketOR + 1, bracketAND)
+                    self.splitID(i, bracketOR + 1, bracketAND,splitID_recursion_count+1)
             elif bracketOR == 1:
                 nodesDeviation = node.split(' OR ')
                 for j in nodesDeviation:
-                    self.splitID(j, bracketOR, bracketAND)
+                    self.splitID(j, bracketOR, bracketAND,splitID_recursion_count+1)
         if 'AND' in node and 'OR' not in node:
             if bracketAND == 0:
                 ## split AND outside brackets
                 a = re.split(r' AND \s*(?![^()]*\))', node)
                 if len(a) == 1:
-                    self.splitID(str(a), bracketOR, bracketAND + 1)
+                    self.splitID(str(a), bracketOR, bracketAND + 1,splitID_recursion_count+1)
                 else:
                     for i in a:
-                        self.splitID(i, bracketOR, bracketAND + 1)
+                        self.splitID(i, bracketOR, bracketAND + 1,splitID_recursion_count+1)
             elif bracketAND == 1:
                 nodesDeviation = node.split(' AND ')
                 for j in nodesDeviation:
-                    self.splitID(j, bracketOR, bracketAND)
+                    self.splitID(j, bracketOR, bracketAND,splitID_recursion_count+1)
 
     def splitIDD(self, node_IDD, node, bracketOR, bracketAND):
         """ Split input node string and number them.
@@ -362,12 +368,24 @@ class Matrix():
             name.append(col)
         df = df[[name[0], name[1], name[2]]]
         for index, row in df.iterrows():
-            if row[name[0]] != 'None':
-                self.splitID(row[name[0]].rstrip(), 0, 0)
-            if row[name[1]] != 'None':
-                self.splitID(row[name[1]].rstrip(), 0, 0)
-            if row[name[2]] != 'None':
-                self.splitID(row[name[2]].rstrip(), 0, 0)
+            
+            try:
+                if row[name[0]] != 'None':
+                    self.splitID(row[name[0]].rstrip(), 0, 0)
+                if row[name[1]] != 'None':
+                    self.splitID(row[name[1]].rstrip(), 0, 0)
+                if row[name[2]] != 'None':
+                    self.splitID(row[name[2]].rstrip(), 0, 0)
+            except:
+                print(index)
+                print(name[0])
+                print(row[name[0]])
+                print(name[1])
+                print(row[name[1]])
+                print(name[2])
+                print(row[name[2]])
+                raise NameError("Gordon")
+                
         ## Set initial size of the adjacency matrix.
         adjacency_matrix = np.zeros((len(self._node_ID), len(self._node_ID)))
         for index, row in df.iterrows():
@@ -488,29 +506,62 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._delete_node = delete_node
         self._master = master
         self._excel_name = self.load_excel()
+        print("[{}] Creating adjacency Matrix".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
         self._adjacency_matrix = self._matrix.adjacency_matrix()
         self._node_ID = self._matrix.get_node_ID()
-        self._digarph_normal = self.get_Digraph()
-        self._pos = nx.nx_agraph.graphviz_layout(self._digarph_normal)
+        self._digraph_normal = self.get_Digraph()
+        self._pos = nx.nx_agraph.graphviz_layout(self._digraph_normal)
         self.add_menu()
-        self._frame_one = tk.Frame(self._master, bg='grey', width=2600, height=1800)
+        self._frame_one = tk.Frame(self._master, bg='grey', width=3000, height=1800)
         self._frame_one.pack(side=tk.LEFT, expand=1, anchor=tk.W)
         self.plot_Digraph_initial()
         self._frame_two = tk.Frame(self._master, bg='grey')
         self._frame_two.pack()
+        self.options = ["Degree", "In_Degree", "Out_Degree", "Strength", "In_Strength", "Out_Strength", "Eigenvector", 
+                                 "In_Closeness", "Out_Closeness", "Betweenness", "Relative_Likelihood", "Causal_Contribution"]
+        self._frame_two = tk.Frame(self._master, bg='grey')
+        self._frame_two.pack()
         self.add_button()
-        self._entry = tk.Entry(self._frame_two, font=60, relief='flat', width=50, bg="#33B5E5")
+        self.clicked = StringVar()
+        self.clicked.set("Degree")
+        drop = OptionMenu( self._frame_two , self.clicked , *self.options)
+        drop.config(width=100)
+        drop.pack()
+        button_colormap = Button( self._frame_two , text = "colormap" , command = self.show_colormap, width=100).pack()
+        button_distribution = Button( self._frame_two , text = "distribution" , command = self.show_distribution, width=100).pack()
+        button_robustness = Button( self._frame_two , text = "robustness_connected_remaining", command = self.show_robustness_connected, width=100).pack()
+        button_robustness_remaining = Button( self._frame_two , text = "robustness_total_remaining", command = self.show_robustness_remaining, width=100).pack()
+        print("[{}] add_button()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        
+        self._entry = tk.Entry(self._frame_two, font=60, relief='flat', width=100, bg="#33B5E5")
         self._entry.pack()
         self._entry.focus_set()
-        self._buttonEntry = tk.Button(self._frame_two, text="Remove", width=50)
+        self._buttonEntry = tk.Button(self._frame_two, text="Remove", width=100)
         self._buttonEntry.bind("<Button-1>", lambda evt: self.entryValueRemove())
         self._buttonEntry.pack()
         self._largest_component = []
         self._deleted_node = []
         self._node_neighbor = self.neighbor_of_nodes()
+        self._number_of_remaining_nodes = []
         self._largest_connected_component = []
+        print("\n[{}] finished digraphPlot init()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
 
+    def get_color(self,k):
+		# Yifei's original colour list
+        color_list = ['red','blue','green','yellow','black','purple','grey','orange','fuchsia','olive','cyan','brown']
+		
+        # 12 Qualitative Colours from Color Brewer
+		# https://colorbrewer2.org/#type=qualitative&scheme=Paired&n=12
+        # color_list=['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']
+        
+        # Use CSS Colors
+        # color_list=list(mcolors.CSS4_COLORS.keys())
+        
+        if k>=len(color_list):
+            k=len(color_list)-1
+        return(color_list[k])
+    
     def add_menu(self):
         """Add the menu function in the master widget."""
         menubar = tk.Menu(self._master)
@@ -525,7 +576,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
 
     def load_excel(self):
         """Select the excel file under same direction with this file"""
-        self._filename = filedialog.askopenfilename()
+        self._filename = filedialog.askopenfilename(filetypes=[("Excel or CSV files", ".xlsx .xls .csv")])
         # If file exists
         if self._filename:
             self._master.title(self._filename)
@@ -541,33 +592,201 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._frame_two.destroy()
         self._matrix = Matrix(filename, self._node_ID, self._node_weight)
         self._adjacency_matrix = self._matrix.adjacency_matrix()
-        self._digarph_normal = self.get_Digraph()
-        self._pos = nx.nx_agraph.graphviz_layout(self._digarph_normal)
-        self._frame_one = tk.Frame(self._master, bg='grey', width=2600, height=1800)
+        self._digraph_normal = self.get_Digraph()
+        self._pos = nx.nx_agraph.graphviz_layout(self._digraph_normal)
+        self._frame_one = tk.Frame(self._master, bg='grey', width=3000, height=1800)
         self._frame_one.pack(side=tk.LEFT, expand=1, anchor=tk.W)
         self.plot_Digraph_initial()
         self._frame_two = tk.Frame(self._master, bg='grey')
         self._frame_two.pack()
+        self.options = ["Degree", "In_Degree", "Out_Degree", "Strength", "In_Strength", "Out_Strength", "Eigenvector", 
+                                 "In_Closeness", "Out_Closeness", "Betweenness", "Relative_Likelihood", "Causal_Contribution"]
+        self._frame_two = tk.Frame(self._master, bg='grey')
+        self._frame_two.pack()
         self.add_button()
-        self._entry = tk.Entry(self._frame_two, font=60, relief='flat', width=50, bg="#33B5E5")
+        self.clicked = StringVar()
+        self.clicked.set("Degree")
+        drop = OptionMenu( self._frame_two , self.clicked , *self.options)
+        drop.config(width=100)
+        drop.pack()
+        button_colormap = Button( self._frame_two , text = "colormap" , command = self.show_colormap, width=100).pack()
+        button_distribution = Button( self._frame_two , text = "distribution" , command = self.show_distribution, width=100).pack()
+        button_robustness = Button( self._frame_two , text = "robustness_connected_remaining", command = self.show_robustness_connected, width=100).pack()
+        button_robustness_remaining = Button( self._frame_two , text = "robustness_total_remaining", command = self.show_robustness_remaining, width=100).pack()
+        print("[{}] add_button()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        
+        self._entry = tk.Entry(self._frame_two, font=60, relief='flat', width=100, bg="#33B5E5")
         self._entry.pack()
         self._entry.focus_set()
-        self._buttonEntry = tk.Button(self._frame_two, text="Remove", width=50)
+        self._buttonEntry = tk.Button(self._frame_two, text="Remove", width=100)
         self._buttonEntry.bind("<Button-1>", lambda evt: self.entryValueRemove())
         self._buttonEntry.pack()
         self._largest_component = []
         self._deleted_node = []
+        self._node_neighbor = self.neighbor_of_nodes()
+        self._number_of_remaining_nodes = []
         self._largest_connected_component = []
+        
+    def show_colormap(self):
+        if self.clicked.get() == "Degree":
+            self.plot_ColorMap(self.get_dict(self._digraph_normal.degree()), 'Degree')
+        elif self.clicked.get() == "In_Degree":
+            self.plot_ColorMap(self.get_dict(self._digraph_normal.in_degree()), 'In_Degree')
+        elif self.clicked.get() == "Out_Degree":
+            self.plot_ColorMap(self.get_dict(self._digraph_normal.out_degree()), 'Out_Degree')
+        elif self.clicked.get() == "Strength":
+            instrength_1 = self.det_instrength()
+            outstrength_1 = self.det_outstrength()
+            strength_1 = self.det_strength(instrength_1, outstrength_1)
+            self.plot_ColorMap(strength_1, 'Strength')
+        elif self.clicked.get() == "In_Strength":
+            self.plot_ColorMap(self.det_instrength(), 'In_Strength')
+        elif self.clicked.get() == "Out_Strength":
+            self.plot_ColorMap(self.det_outstrength(), 'Out_Strength')
+        elif self.clicked.get() == "Eigenvector":
+            self.plot_ColorMap_eigen(nx.eigenvector_centrality(self._digraph_normal, max_iter=600), 'Eigenvector')
+        elif self.clicked.get() == "In_Closeness":
+            self.plot_ColorMap(self.plot_ColorMap(nx.closeness_centrality(self._digraph_normal)), 'In_Closeness')
+        elif self.clicked.get() == "Out_Closeness":
+            self.plot_ColorMap(self.plot_ColorMap(nx.closeness_centrality(self._digraph_normal.reverse())), 'Out_Closeness')
+        elif self.clicked.get() == "Betweenness":
+            self.plot_ColorMap(self.plot_ColorMap(nx.betweenness_centrality(self._digraph_normal),'Betweenness'))
+        elif self.clicked.get() == "Relative_Likelihood":
+            self.plot_ColorMap(self.det_relative_likelihood(), 'Relative_Likelihood')
+        elif self.clicked.get() == "Causal_Contribution":
+            self.plot_ColorMap(self.det_causal_contribution(), 'Causal_Contribution')
+            
+    def show_distribution(self):
+        if self.clicked.get() == "Degree":
+            Indegree = self.det_indegree()
+            Outdegree = self.det_outdegree()
+            Degree = self.det_degree(Indegree, Outdegree)
+            self.plot_distribution(Degree, 1, "Degree_Distribution")
+        elif self.clicked.get() == "In_Degree":
+            Indegree = self.det_indegree()
+            self.plot_distribution(Indegree, 2,"In_Degree_Distribution")
+        elif self.clicked.get() == "Out_Degree":
+            Outdegree = self.det_outdegree()
+            self.plot_distribution(Outdegree, 3,"Out_Degree_Distribution")
+            
+        elif self.clicked.get() == "Strength":
+            strength_list = []
+            instrength_1 = self.det_instrength()
+            outstrength_1 = self.det_outstrength()
+            strength_1 = self.det_strength(instrength_1, outstrength_1)
+            for i in range(len(strength_1)):
+                strength_list.append(strength_1.get(str(i)))
+            self.plot_distribution(strength_list, 8, "Strength_Distribution")
+            
+        elif self.clicked.get() == "In_Strength":
+            instrength_list = []
+            instrength_1 = self.det_instrength()
+            for i in range(len(instrength_1)):
+                instrength_list.append(instrength_1.get(str(i)))
+            self.plot_distribution(instrength_list, 9, "In_Strength_Distribution")
+            
+        elif self.clicked.get() == "Out_Strength":
+            outstrength_list = []
+            outstrength_1 = self.det_instrength()
+            for i in range(len(outstrength_1)):
+                outstrength_list.append(outstrength_1.get(str(i)))
+            self.plot_distribution(outstrength_list, 10, "Out_Strength_Distribution")
+            
+        elif self.clicked.get() == "Eigenvector":
+            Eigenvector_Centrality_values = []
+            self.plot_distribution(self.det_eigenvector_one(Eigenvector_Centrality_values), 5, "Eigenvector_Distribution")
+        elif self.clicked.get() == "In_Closeness":
+            In_closeness_centrality_values = []
+            self.plot_distribution(self.det_in_closeness_one(In_closeness_centrality_values), 4, "In_Closeness_Distribution")
+        elif self.clicked.get() == "Out_Closeness":
+            Out_closeness_centrality_values = []
+            self.plot_distribution(self.det_out_closeness_one(Out_closeness_centrality_values), 7, "In_Closeness_Distribution")
+        elif self.clicked.get() == "Betweenness":
+            betweenness_values = []
+            self.plot_distribution(self.det_betweenness_one(betweenness_values), 6, "Betweenness_Distribution")
+            
+        elif self.clicked.get() == "Relative_Likelihood":
+            relative_likelihood_list = []
+            relative_likelihood = self.det_relative_likelihood()
+            for i in range(len(relative_likelihood)):
+                relative_likelihood_list.append(relative_likelihood.get(str(i)))
+            self.plot_distribution(relative_likelihood_list, 11, 'Relative_Likelihood')
+            
+        elif self.clicked.get() == "Causal_Contribution":
+            Causal_Contribution_list = []
+            Causal_Contribution = self.det_causal_contribution()
+            for i in range(len(Causal_Contribution)):
+                Causal_Contribution_list.append(Causal_Contribution.get(str(i)))
+            self.plot_distribution(Causal_Contribution_list, 12, 'Causal_Contribution')
 
+
+            
+    def show_robustness_connected(self):
+        if self.clicked.get() == "Degree":
+            self.delete_by_degree_connected()
+        elif self.clicked.get() == "In_Degree":
+            self.delete_by_In_degree_connected()
+        elif self.clicked.get() == "Out_Degree":
+            self.delete_by_Out_degree_connected()
+        elif self.clicked.get() == "Strength":
+            self.delete_by_Strength_connected()
+        elif self.clicked.get() == "In_Strength":
+            self.delete_by_In_Strength_connected()
+        elif self.clicked.get() == "Out_Strength":
+            self.delete_by_Out_Strength_connected()
+        elif self.clicked.get() == "Eigenvector":
+            self.delete_by_Eigenvector_connected()
+        elif self.clicked.get() == "In_Closeness":
+            self.delete_by_Closeness_connected()
+        elif self.clicked.get() == "Out_Closeness":
+            self.delete_by_Out_Closeness_connected()
+        elif self.clicked.get() == "Betweenness":
+            self.delete_by_Betweenness_connected()
+        elif self.clicked.get() == "Relative_Likelihood":
+            self.delete_by_relative_likelihood_connected()
+        elif self.clicked.get() == "Causal_Contribution":
+            self.delete_by_causal_contribution_connected()
+            
+    def show_robustness_remaining(self):
+        if self.clicked.get() == "Degree":
+            self.delete_by_degree_remaining()
+        elif self.clicked.get() == "In_Degree":
+            self.delete_by_In_degree_remaining()
+        elif self.clicked.get() == "Out_Degree":
+            self.delete_by_Out_degree_remaining()
+        elif self.clicked.get() == "Strength":
+            self.delete_by_Strength_remaining()
+        elif self.clicked.get() == "In_Strength":
+            self.delete_by_In_Strength_remaining()
+        elif self.clicked.get() == "Out_Strength":
+            self.delete_by_Out_Strength_remaining()
+        elif self.clicked.get() == "Eigenvector":
+            self.delete_by_Eigenvector_remaining()
+        elif self.clicked.get() == "In_Closeness":
+            self.delete_by_Closeness_remaining()
+        elif self.clicked.get() == "Out_Closeness":
+            self.delete_by_Out_Closeness_remaining()
+        elif self.clicked.get() == "Betweenness":
+            self.delete_by_Betweenness_remaining()
+        elif self.clicked.get() == "Relative_Likelihood":
+            self.delete_by_relative_likelihood_remaining()
+        elif self.clicked.get() == "Causal_Contribution":
+            self.delete_by_causal_contribution_remaining()
+        
+            
     def save_matrix(self):
         if self._filename is None:
-            filename = filedialog.asksaveasfilename()
+            filename = filedialog.asksaveasfilename(filetypes=[("Text file", ".txt")])
             if filename:
                 self._filename = filename
         if self._filename:
             self._master.title(self._filename)
             np.savetxt(self._filename, self._adjacency_matrix, fmt="%d", delimiter=",")
 
+        a = self._matrix.get_node_ID()
+        res = dict((v,k) for k,v in a.items())
+        df_IDs = pd.DataFrame.from_dict(res,orient='index',columns=['Description'])
+        df_IDs.to_csv(filename + "_lookup.csv")
     def quit(self):
         """Execute the program"""
         self._master.destroy()
@@ -579,25 +798,16 @@ class digraphPlot(tk.Canvas, tk.Frame):
     def get_Digraph(self):
         """ Return the directed graph structure from the adjacency matrix"""
         G = nx.DiGraph(directed=True)
-        a = []
-        for i in range(len(self._adjacency_matrix)):
-            a.append(str(i))
+        
+        print("[{}] started get_Digraph()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         for i in range(len(self._adjacency_matrix)):
             for j in range(len(self._adjacency_matrix)):
-                if self._adjacency_matrix[i][j] == 1:
-                    G.add_edge(a[i], a[j], color='red', weight=int(self._adjacency_matrix[i][j]))
-                elif self._adjacency_matrix[i][j] == 2:
-                    G.add_edge(a[i], a[j], color='blue', weight=int(self._adjacency_matrix[i][j]))
-                elif self._adjacency_matrix[i][j] == 3:
-                    G.add_edge(a[i], a[j], color='green', weight=int(self._adjacency_matrix[i][j]))
-                elif self._adjacency_matrix[i][j] == 4:
-                    G.add_edge(a[i], a[j], color='yellow', weight=int(self._adjacency_matrix[i][j]))
-                elif self._adjacency_matrix[i][j] == 5:
-                    G.add_edge(a[i], a[j], color='black', weight=int(self._adjacency_matrix[i][j]))
-                elif self._adjacency_matrix[i][j] == 6:
-                    G.add_edge(a[i], a[j], color='purple', weight=int(self._adjacency_matrix[i][j]))
-                elif self._adjacency_matrix[i][j] > 6:
-                    G.add_edge(a[i], a[j], color='grey', weight=int(self._adjacency_matrix[i][j]))
+                weight=int(self._adjacency_matrix[i][j])
+                if weight>0:
+                    color = self.get_color(weight-1)
+                    G.add_edge(str(i), str(j), color=color,weight=weight)
+        
+        print("[{}] finished get_Digraph()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         return G
 
     def plot_Digraph_initial(self):
@@ -607,17 +817,17 @@ class digraphPlot(tk.Canvas, tk.Frame):
         plt.axis('off')
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
                             hspace=0, wspace=0)
-        self._digarph_normal = self.get_Digraph()
-        pos = nx.nx_agraph.graphviz_layout(self._digarph_normal)
-        colors = nx.get_edge_attributes(self._digarph_normal, 'color').values()
+        pos = nx.nx_agraph.graphviz_layout(self._digraph_normal)
+        colors = nx.get_edge_attributes(self._digraph_normal, 'color').values()
         options = {'font_size': 3, 'font_color': 'white', 'node_color': 'black', 'node_size': 60,
                    'style': 'solid',
                    'width': 0.3
                    }
-        nx.draw_networkx(self._digarph_normal, pos, edge_color=colors, arrows=True, arrowsize=2,
+        nx.draw_networkx(self._digraph_normal, pos, edge_color=colors, arrows=True, arrowsize=2,
                          **options)
         plt.margins(0, 0)
         plt.savefig("initial_Digraph.png", dpi=800, pad_inches=0)
+        print("[{}] Created: initial_Digraph.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         for widget in self._frame_one.winfo_children():
             widget.destroy()
         canvas = FigureCanvasTkAgg(fig, master=self._frame_one)
@@ -627,16 +837,15 @@ class digraphPlot(tk.Canvas, tk.Frame):
     def plot_ColorMap(self, measures, measure_name):
         """ Plot the colormap structure (Degree, In-degree, Out-degree, Betweenness, Closeness) on the canvas"""
         fig = plt.figure(figsize=(6, 6), dpi=200)
-        self._digarph_normal = self.get_Digraph()
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
-        colors = nx.get_edge_attributes(self._digarph_normal, 'color').values()
+        colors = nx.get_edge_attributes(self._digraph_normal, 'color').values()
         options = {'font_size': 3, 'font_color': 'white', 'node_color': 'black', 'node_size': 50, 'style': 'solid',
                    'width': 0.3}
-        nx.draw_networkx(self._digarph_normal, self._pos, edge_color=colors, arrows=True, arrowsize=2, **options)
+        nx.draw_networkx(self._digraph_normal, self._pos, edge_color=colors, arrows=True, arrowsize=2, **options)
 
         cmap = plt.get_cmap('jet', 10)
         cmap.set_under('gray')
-        nodes = nx.draw_networkx_nodes(self._digarph_normal, self._pos, node_size=50, cmap=cmap,
+        nodes = nx.draw_networkx_nodes(self._digraph_normal, self._pos, node_size=50, cmap=cmap,
                                        node_color=list(measures.values()),
                                        nodelist=measures.keys())
         min = 10000
@@ -653,6 +862,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         cbar.ax.tick_params(labelsize=5)
         plt.axis('off')
         plt.savefig(measure_name + ".png", dpi=800, pad_inches=0)
+        print("[{}] Created: {}".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S"),measure_name + ".png"))
         for widget in self._frame_one.winfo_children():
             widget.destroy()
         canvas = FigureCanvasTkAgg(fig, master=self._frame_one)
@@ -662,16 +872,15 @@ class digraphPlot(tk.Canvas, tk.Frame):
     def plot_ColorMap_eigen(self, measures, measure_name):
         """ Plot the colormap structure (Eigenvector) on the canvas"""
         fig = plt.figure(figsize=(6, 6), dpi=200)
-        self._digarph_normal = self.get_Digraph()
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
-        colors = nx.get_edge_attributes(self._digarph_normal, 'color').values()
+        colors = nx.get_edge_attributes(self._digraph_normal, 'color').values()
         options = {'font_size': 3, 'font_color': 'white', 'node_color': 'black', 'node_size': 50, 'style': 'solid',
                    'width': 0.3}
-        nx.draw_networkx(self._digarph_normal, self._pos, edge_color=colors, arrows=True, arrowsize=2, **options)
+        nx.draw_networkx(self._digraph_normal, self._pos, edge_color=colors, arrows=True, arrowsize=2, **options)
 
         cmap = plt.get_cmap('jet', 10)
         cmap.set_under('gray')
-        nodes = nx.draw_networkx_nodes(self._digarph_normal, self._pos, node_size=50, cmap=cmap,
+        nodes = nx.draw_networkx_nodes(self._digraph_normal, self._pos, node_size=50, cmap=cmap,
                                        node_color=list(measures.values()),
                                        nodelist=measures.keys())
         min = 1
@@ -688,6 +897,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         cbar.ax.tick_params(labelsize=5)
         plt.axis('off')
         plt.savefig(measure_name + ".png", dpi=800, pad_inches=0)
+        print("[{}] Created: {}".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S"),measure_name + ".png"))
         for widget in self._frame_one.winfo_children():
             widget.destroy()
         canvas = FigureCanvasTkAgg(fig, master=self._frame_one)
@@ -752,14 +962,666 @@ class digraphPlot(tk.Canvas, tk.Frame):
 
                 saved_list = []
                 self.new(saved_list, component, 0)
+                
+### Robustness of network focusing on number of remaining nodes   
+    def delete_by_degree_remaining(self):
+        """
+        Delete all the nodes by the descending order of value of degree.
+        """
+        count = -1
+        name = ''
+        a = self._digraph_normal.degree
+        component = []
+        while len(a) != 0:
+            for i in a:
+                if i[1] > count:
+                    count = i[1]
+                    name = i[0]
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            a = self._digraph_normal.degree
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of degree')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_Degree_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_Degree_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        workbook = xlsxwriter.Workbook('Robustness_Degree_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._number_of_remaining_nodes:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Out_degree_remaining(self):
+        """ Delete all the nodes by the descending order of value of Out Degree."""
+        count = 0
+        name = ''
+        a = self._digraph_normal.out_degree
+        component = []
+        while len(a) != 0:
+            for i in a:
+                if i[1] > count:
+                    count = i[1]
+                    name = i[0]
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = 0
+            name = ''
+            a = self._digraph_normal.out_degree
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node) + 1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of Out_Degree')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_Out_Degree_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_Out_Degree_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Out_Degree_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number_of_Remaining_Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_In_degree_remaining(self):
+        """ Delete all the nodes by the descending order of value of In Degree."""
+        count = 0
+        name = ''
+        a = self._digraph_normal.in_degree
+        component = []
+        while len(a) != 0:
+            for i in a:
+                if i[1] > count:
+                    count = i[1]
+                    name = i[0]
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = 0
+            name = ''
+            a = self._digraph_normal.in_degree
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node) + 1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of In_Degree')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_In_Degree_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_In_Degree_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_In_Degree_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number_of_Remaining_Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Closeness_remaining(self):
+        """ Delete all the nodes by the descending order of value of In_Closeness."""
+        count = -1
+        name = ''
+        cc = 0
+        aa = []
+        a = nx.closeness_centrality(self._digraph_normal, distance="weight")
+        component = []
+        while len(a) != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            a = nx.closeness_centrality(self._digraph_normal, distance="weight")
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of In_Closeness')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_In_Closeness_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_In_Closeness_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_In_Closeness_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Out_Closeness_remaining(self):
+        """ Delete all the nodes by the descending order of value of Closeness."""
+        count = -1
+        name = ''
+        cc = 0
+        aa = []
+        a = nx.closeness_centrality(self._digraph_normal.reverse(), distance="weight")
+        component = []
+        while len(a) != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            a = nx.closeness_centrality(self._digraph_normal.reverse(), distance="weight")
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of Out_Closeness')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_Out_Closeness_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_Out_Closeness_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Out_Closeness_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of remaining nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Eigenvector_remaining(self):
+        """ Delete all the nodes by the descending order of value of Eigenvector."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        a = nx.eigenvector_centrality(self._digraph_normal, tol=1e-03)
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                a = nx.eigenvector_centrality(self._digraph_normal, tol=1e-03)
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of Eigenvector')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remainig Nodes')
+        fig1.savefig('Robustness_Eigenvector_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_Eigenvector_Remain.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Eigenvector_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Betweenness_remaining(self):
+        """ Delete all the nodes by the descending order of value of Betweenness."""
+        count = -1
+        name = ''
+        a = nx.betweenness_centrality(self._digraph_normal, normalized=True,weight="weight")
+        component = []
+        cc = 0
+        aa = []
+        while len(a) != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            cc = 0
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            a = nx.betweenness_centrality(self._digraph_normal, normalized=True,weight="weight")
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of Betweenness')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_Betweenness_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_Betweenness_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Betweenness_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Strength_remaining(self):
+        """ Delete all the nodes by the descending order of value of Strength."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        instrength = self.det_instrength()
+        outstrength = self.det_outstrength()
+        a = self.det_strength(instrength, outstrength)
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                instrength = self.det_instrength()
+                outstrength = self.det_outstrength()
+                a = self.det_strength(instrength, outstrength)
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of Strength')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_Strength_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_Strength_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Strength_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_In_Strength_remaining(self):
+        """ Delete all the nodes by the descending order of value of Instrength."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        a = self.det_instrength()
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                a = self.det_instrength()
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of In_Strength')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Reamining Nodes')
+        fig1.savefig('Robustness_In_Strength_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_In_Strength_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_In_Strength_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Out_Strength_remaining(self):
+        """ Delete all the nodes by the descending order of value of OutStrength."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        a = self.det_outstrength()
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                a = self.det_outstrength()
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of Out_Strength')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_Out_Strength_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_Out_Strength_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Out_Strength_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_relative_likelihood_remaining(self):
+        """ Delete all the nodes by the descending order of value of relative_likelihood."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        a = self.det_relative_likelihood()
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                a = self.det_relative_likelihood()
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of relative_likelihood')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_relative_likelihood_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_relative_likelihood_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_relative_likelihood_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+        
+    def delete_by_causal_contribution_remaining(self):
+        """ Delete all the nodes by the descending order of value of causal_contribution."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        a = self.det_causal_contribution()
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self._number_of_remaining_nodes.append(self._digraph_normal.number_of_nodes())
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                a = self.det_causal_contribution()
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._number_of_remaining_nodes.append(0)
+        sub1.plot(a, self._number_of_remaining_nodes)
+        y = np.array(self._number_of_remaining_nodes)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of causal_contribution')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Number of Remaining Nodes')
+        fig1.savefig('Robustness_causal_contribution_Remaining_Nodes.png')
+        print("[{}] Created: Robustness_causal_contribution_Remaining_Nodes.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_causal_contribution_Remaining_Nodes.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
 
+        
+### Robustness of network focusing on largest connected component
     def delete_by_degree_connected(self):
         """
         Delete all the nodes by the descending order of value of degree.
         """
         count = -1
         name = ''
-        a = self.get_Digraph().degree
+        a = self._digraph_normal.degree
         component = []
         while len(a) != 0:
             for i in a:
@@ -776,27 +1638,43 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
             count = -1
             name = ''
-            a = self.get_Digraph().degree
+            a = self._digraph_normal.degree
         fig1, sub1 = plt.subplots()
         a = []
-        for i in range(len(self._deleted_node)):
+        for i in range(len(self._deleted_node)+1):
             a.append(i)
+        self._largest_connected_component.append(0)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
+        area = int(simps(y, dx=len(self._deleted_node)+1))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of degree')
         sub1.set_xlabel('Number of Removed Nodes')
         sub1.set_ylabel('Size of Remaining Largest Component')
         fig1.savefig('Robustness_Degree.png')
+        print("[{}] Created: Robustness_Degree.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        workbook = xlsxwriter.Workbook('Robustness_Degree_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+                    
 
     def delete_by_In_degree_connected(self):
         """ Delete all the nodes by the descending order of value of In Degree."""
         count = -1
         name = ''
-        a = self.get_Digraph().in_degree
+        a = self._digraph_normal.in_degree
         component = []
         while len(a) != 0:
             for i in a:
@@ -813,29 +1691,44 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_neighbor = self.neighbor_of_nodes()
-
+            self._digraph_normal = self.get_Digraph()
             count = -1
             name = ''
-            a = self.get_Digraph().in_degree
+            a = self._digraph_normal.in_degree
         fig1, sub1 = plt.subplots()
         a = []
-        for i in range(len(self._deleted_node)):
+        for i in range(len(self._deleted_node)+1):
             a.append(i)
+        self._largest_connected_component.append(0)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
+        area = int(simps(y, dx=len(self._deleted_node) + 1))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of In_Degree')
         sub1.set_xlabel('Number of Removed Nodes')
         sub1.set_ylabel('Size of Remaining Largest Component')
         fig1.savefig('Robustness_In_Degree.png')
+        print("[{}] Created: Robustness_In_Degree.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+
         print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_In_Degree_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
 
     def delete_by_Out_degree_connected(self):
         """ Delete all the nodes by the descending order of value of Out Degree."""
         count = 0
         name = ''
-        a = self.get_Digraph().out_degree
+        a = self._digraph_normal.out_degree
         component = []
         while len(a) != 0:
             for i in a:
@@ -852,31 +1745,45 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_neighbor = self.neighbor_of_nodes()
-
+            self._digraph_normal = self.get_Digraph()
             count = 0
             name = ''
-            a = self.get_Digraph().out_degree
+            a = self._digraph_normal.out_degree
         fig1, sub1 = plt.subplots()
         a = []
-        for i in range(len(self._deleted_node)):
+        for i in range(len(self._deleted_node)+1):
             a.append(i)
+        self._largest_connected_component.append(0)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
+        area = int(simps(y, dx=len(self._deleted_node) + 1))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of Out_Degree')
         sub1.set_xlabel('Number of Removed Nodes')
         sub1.set_ylabel('Size of Remaining Largest Component')
         fig1.savefig('Robustness_Out_Degree.png')
+        print("[{}] Created: Robustness_Out_Degree.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Out_Degree_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
 
     def delete_by_Closeness_connected(self):
-        """ Delete all the nodes by the descending order of value of Closeness."""
+        """ Delete all the nodes by the descending order of value of In_Closeness."""
         count = -1
         name = ''
         cc = 0
         aa = []
-        a = nx.closeness_centrality(self.get_Digraph())
+        a = nx.closeness_centrality(self._digraph_normal, distance="weight")
         component = []
         while len(a) != 0:
             for i in a:
@@ -900,30 +1807,106 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_neighbor = self.neighbor_of_nodes()
-
+            self._digraph_normal = self.get_Digraph()
             count = -1
             name = ''
-            a = nx.closeness_centrality(self.get_Digraph())
+            a = nx.closeness_centrality(self._digraph_normal, distance="weight")
         fig1, sub1 = plt.subplots()
         a = []
-        for i in range(len(self._deleted_node)):
+        for i in range(len(self._deleted_node)+1):
             a.append(i)
+        self._largest_connected_component.append(0)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
+        area = int(simps(y, dx=len(self._deleted_node)+1))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
-        sub1.set_title('Nodes elimination follows order of Closeness')
+        sub1.set_title('Nodes elimination follows order of In_Closeness')
         sub1.set_xlabel('Number of Removed Nodes')
         sub1.set_ylabel('Size of Remaining Largest Component')
-        fig1.savefig('Robustness_Closeness.png')
+        fig1.savefig('Robustness_In_Closeness.png')
+        print("[{}] Created: Robustness_In_Closeness.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_In_Closeness_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Out_Closeness_connected(self):
+        """ Delete all the nodes by the descending order of value of Closeness."""
+        count = -1
+        name = ''
+        cc = 0
+        aa = []
+        a = nx.closeness_centrality(self._digraph_normal.reverse(), distance="weight")
+        component = []
+        while len(a) != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self.new([], component, 0)
+            for i in component:
+                if len(i) > cc:
+                    cc = len(i)
+                    aa.append(i)
+                    if len(aa) != 1:
+                        aa.pop(0)
+            cc = 0
+            max_length = max([(len(x)) for x in component])
+            self._largest_connected_component.append(max_length)
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            a = nx.closeness_centrality(self._digraph_normal.reverse(), distance="weight")
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._largest_connected_component.append(0)
+        sub1.plot(a, self._largest_connected_component)
+        y = np.array(self._largest_connected_component)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of Out_Closeness')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Size of Remaining Largest Component')
+        fig1.savefig('Robustness_Out_Closeness.png')
+        print("[{}] Created: Robustness_Out_Closeness.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Out_Closeness_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
 
     def delete_by_Eigenvector_connected(self):
         """ Delete all the nodes by the descending order of value of Eigenvector."""
         count = -1
         name = ''
-        b = len(self.get_Digraph())
-        a = nx.eigenvector_centrality(self.get_Digraph(), tol=1e-03)
+        b = len(self._digraph_normal)
+        a = nx.eigenvector_centrality(self._digraph_normal, tol=1e-03)
         component = []
         while b != 0:
             for i in a:
@@ -940,32 +1923,336 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_neighbor = self.neighbor_of_nodes()
-
+            self._digraph_normal = self.get_Digraph()
             count = -1
             name = ''
-            if len(self.get_Digraph()) != 0:
-                a = nx.eigenvector_centrality(self.get_Digraph(), tol=1e-03)
+            if len(self._digraph_normal) != 0:
+                a = nx.eigenvector_centrality(self._digraph_normal, tol=1e-03)
             else:
                 break
         fig1, sub1 = plt.subplots()
         a = []
-        for i in range(len(self._deleted_node)):
+        for i in range(len(self._deleted_node)+1):
             a.append(i)
+        self._largest_connected_component.append(0)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
+        area = int(simps(y, dx=len(self._deleted_node)+1))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of Eigenvector')
         sub1.set_xlabel('Number of Removed Nodes')
         sub1.set_ylabel('Size of Remaining Largest Component')
         fig1.savefig('Robustness_Eigenvector.png')
+        print("[{}] Created: Robustness_Eigenvector.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Eigenvector_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Strength_connected(self):
+        """ Delete all the nodes by the descending order of value of Strength."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        instrength = self.det_instrength()
+        outstrength = self.det_outstrength()
+        a = self.det_strength(instrength, outstrength)
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self.new([], component, 0)
+            max_length = max([(len(x)) for x in component])
+            self._largest_connected_component.append(max_length)
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                instrength = self.det_instrength()
+                outstrength = self.det_outstrength()
+                a = self.det_strength(instrength, outstrength)
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._largest_connected_component.append(0)
+        sub1.plot(a, self._largest_connected_component)
+        y = np.array(self._largest_connected_component)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of Strength')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Size of Remaining Largest Component')
+        fig1.savefig('Robustness_Strength.png')
+        print("[{}] Created: Robustness_Strength.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Strength_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_In_Strength_connected(self):
+        """ Delete all the nodes by the descending order of value of Instrength."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        a = self.det_instrength()
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self.new([], component, 0)
+            max_length = max([(len(x)) for x in component])
+            self._largest_connected_component.append(max_length)
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                a = self.det_instrength()
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._largest_connected_component.append(0)
+        sub1.plot(a, self._largest_connected_component)
+        y = np.array(self._largest_connected_component)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of In_Strength')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Size of Remaining Largest Component')
+        fig1.savefig('Robustness_In_Strength.png')
+        print("[{}] Created: Robustness_In_Strength.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_In_Strength_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_Out_Strength_connected(self):
+        """ Delete all the nodes by the descending order of value of OutStrength."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        a = self.det_outstrength()
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self.new([], component, 0)
+            max_length = max([(len(x)) for x in component])
+            self._largest_connected_component.append(max_length)
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                a = self.det_outstrength()
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._largest_connected_component.append(0)
+        sub1.plot(a, self._largest_connected_component)
+        y = np.array(self._largest_connected_component)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of Out_Strength')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Size of Remaining Largest Component')
+        fig1.savefig('Robustness_Out_Strength.png')
+        print("[{}] Created: Robustness_Out_Strength.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Out_Strength_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+    def delete_by_relative_likelihood_connected(self):
+        """ Delete all the nodes by the descending order of value of relative_likelihood."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        a = self.det_relative_likelihood()
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self.new([], component, 0)
+            max_length = max([(len(x)) for x in component])
+            self._largest_connected_component.append(max_length)
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                a = self.det_relative_likelihood()
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._largest_connected_component.append(0)
+        sub1.plot(a, self._largest_connected_component)
+        y = np.array(self._largest_connected_component)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of relative_likelihood')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Size of Remaining Largest Component')
+        fig1.savefig('Robustness_relative_likelihood.png')
+        print("[{}] Created: Robustness_relative_likelihood.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_relative_likelihood_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
+        
+        
+    def delete_by_causal_contribution_connected(self):
+        """ Delete all the nodes by the descending order of value of causal_contribution."""
+        count = -1
+        name = ''
+        b = len(self._digraph_normal)
+        a = self.det_causal_contribution()
+        component = []
+        while b != 0:
+            for i in a:
+                if a[i] > count:
+                    count = a[i]
+                    name = i
+            self._deleted_node.append(name)
+            self._delete_node.append(int(name))
+            self.new([], component, 0)
+            max_length = max([(len(x)) for x in component])
+            self._largest_connected_component.append(max_length)
+            component = []
+            self._matrix.deleteNode(self._delete_node)
+            self._delete_node = []
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_neighbor = self.neighbor_of_nodes()
+            self._digraph_normal = self.get_Digraph()
+            count = -1
+            name = ''
+            if len(self._digraph_normal) != 0:
+                a = self.det_causal_contribution()
+            else:
+                break
+        fig1, sub1 = plt.subplots()
+        a = []
+        for i in range(len(self._deleted_node)+1):
+            a.append(i)
+        self._largest_connected_component.append(0)
+        sub1.plot(a, self._largest_connected_component)
+        y = np.array(self._largest_connected_component)
+        area = int(simps(y, dx=len(self._deleted_node)+1))
+        sub1.text(20, 150, 'The area under curve is ' + str(area))
+        sub1.set_title('Nodes elimination follows order of causal_contribution')
+        sub1.set_xlabel('Number of Removed Nodes')
+        sub1.set_ylabel('Size of Remaining Largest Component')
+        fig1.savefig('Robustness_causal_contribution.png')
+        print("[{}] Created: Robustness_causal_contribution.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_causal_contribution_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
 
     def delete_by_Betweenness_connected(self):
         """ Delete all the nodes by the descending order of value of Betweenness."""
         count = -1
         name = ''
-        a = nx.betweenness_centrality(self.get_Digraph())
+        a = nx.betweenness_centrality(self._digraph_normal, normalized=True,weight="weight")
         component = []
         cc = 0
         aa = []
@@ -991,23 +2278,37 @@ class digraphPlot(tk.Canvas, tk.Frame):
             cc = 0
             self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_neighbor = self.neighbor_of_nodes()
-
+            self._digraph_normal = self.get_Digraph()
             count = -1
             name = ''
-            a = nx.betweenness_centrality(self.get_Digraph())
+            a = nx.betweenness_centrality(self._digraph_normal, normalized=True,weight="weight")
         fig1, sub1 = plt.subplots()
         a = []
-        for i in range(len(self._deleted_node)):
+        for i in range(len(self._deleted_node)+1):
             a.append(i)
+        self._largest_connected_component.append(0)
         sub1.plot(a, self._largest_connected_component)
         y = np.array(self._largest_connected_component)
-        area = int(simps(y, dx=len(self._deleted_node)))
+        area = int(simps(y, dx=len(self._deleted_node)+1))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of Betweenness')
         sub1.set_xlabel('Number of Removed Nodes')
         sub1.set_ylabel('Size of Remaining Largest Component')
         fig1.savefig('Robustness_Betweenness.png')
+        print("[{}] Created: Robustness_Betweenness.png".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         print("area =", area)
+        workbook = xlsxwriter.Workbook('Robustness_Betweenness_Connected.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Nodes")
+        worksheet_robustness.write("B1", "Size of Remaining Largest Component")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._largest_connected_component:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+        workbook.close()
 
     def plot_distribution(self, parameter, figure_number, title):
         """
@@ -1040,17 +2341,36 @@ class digraphPlot(tk.Canvas, tk.Frame):
                          xytext=(0, 3), textcoords='offset points', ha='center', va='bottom')
 
         fig.savefig(title)
+        print("[{}] Created: {}".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S"),title))
 
     def det_indegree(self):
         output = []
-        for i in range(len(self._adjacency_matrix)):
-            output.append(self.get_Digraph().in_degree(str(i)))
+        print("[{}] Started Calculating Indegree".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        for i in tqdm(range(len(self._adjacency_matrix)), position=0, leave=True):
+            ind = self._digraph_normal.in_degree(str(i))
+            if type(ind)==int:
+                output.append(ind)
+            else:
+                # ??? Investigate the root cause of this!
+                output.append(0)
+                print("Warning [{}] setting in degree to zero!".format(i))
+            # if i%10==0:
+                # print("[{}] Calculating Indegree <{:,d} of {:,d}>".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S"),i,len(self._adjacency_matrix)))
         return output
 
     def det_outdegree(self):
+        print("[{}] Started Calculating Outdegree".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         output = []
-        for i in range(len(self._adjacency_matrix)):
-            output.append(self.get_Digraph().out_degree(str(i)))
+        for i in tqdm(range(len(self._adjacency_matrix)), position=0, leave=True):
+            outd= self._digraph_normal.out_degree(str(i))
+            if type(outd)==int:
+                output.append(outd)
+            else:
+               # ??? Investigate the root cause of this!
+               output.append(0)
+               print("Warning [{}] setting out degree to zero!".format(i))
+            # if i%10==0:
+                # print("[{}] Calculating Outdegree <{:,d} of {:,d}>".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S"),i,len(self._adjacency_matrix)))
         return output
 
     def det_degree(self, indegree, outdegree):
@@ -1059,6 +2379,69 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for x, y in zip(*sum):
             output.append(x + y)
         return output
+    
+    def det_instrength(self):
+        output = {}
+        for i in range(len(self._adjacency_matrix)):
+            total_incoming_weight = 0
+            for j in range(len(self._adjacency_matrix)):
+                if self._adjacency_matrix[j][i] != 0:
+                    total_incoming_weight += round(1/self._adjacency_matrix[j][i], 2)
+            if total_incoming_weight != 0:
+                output[str(i)] = total_incoming_weight
+            elif total_incoming_weight == 0:
+                output[str(i)] = 0
+        return output
+
+    def det_outstrength(self):
+        output = {}
+        for i in range(len(self._adjacency_matrix)):
+            total_outcoming_weight = 0
+            for j in range(len(self._adjacency_matrix)):
+                if self._adjacency_matrix[i][j] != 0:
+                    total_outcoming_weight += round(1/self._adjacency_matrix[i][j], 2)
+            if total_outcoming_weight != 0:
+                output[str(i)] = total_outcoming_weight
+            elif total_outcoming_weight == 0:
+                output[str(i)] = 0
+        return output
+
+    def det_strength(self, instrength, outstrength):
+        output = {}
+        for i in range(len(self._adjacency_matrix)):
+            output[str(i)] = round(instrength.get(str(i)) + outstrength.get(str(i)), 2)
+        return output
+    
+    def det_relative_likelihood(self):
+        output = {}
+        for i in range(len(self._adjacency_matrix)):
+            total_incoming_weight = 0
+            number_of_incoming_edges = 0
+            for j in range(len(self._adjacency_matrix)):
+                if self._adjacency_matrix[j][i] != 0:
+                    total_incoming_weight += round(1/self._adjacency_matrix[j][i], 2)
+                    number_of_incoming_edges += 1
+            if total_incoming_weight != 0:
+                output[str(i)] = total_incoming_weight * total_incoming_weight/number_of_incoming_edges
+            elif total_incoming_weight == 0:
+                output[str(i)] = 0
+        return output
+
+    def det_causal_contribution(self):
+        output = {}
+        for i in range(len(self._adjacency_matrix)):
+            total_outcoming_weight = 0
+            number_of_outcoming_edges = 0
+            for j in range(len(self._adjacency_matrix)):
+                if self._adjacency_matrix[i][j] != 0:
+                    total_outcoming_weight += round(1/self._adjacency_matrix[i][j], 2)
+                    number_of_outcoming_edges += 1
+            if total_outcoming_weight != 0:
+                output[str(i)] = total_outcoming_weight * total_outcoming_weight/number_of_outcoming_edges
+            elif total_outcoming_weight == 0:
+                output[str(i)] = 0
+        return output
+    
 
     def excel_Gather(self):
 
@@ -1072,18 +2455,31 @@ class digraphPlot(tk.Canvas, tk.Frame):
         worksheet_distribution = workbook.add_worksheet('Distribution')
         row = 0
         col = 0
-        degree_1 = self._digarph_normal.degree
-        indegree_1 = self._digarph_normal.in_degree
-        outdegree_1 = self._digarph_normal.out_degree
-        Betweenness_1 = nx.betweenness_centrality(self.get_Digraph())
-        Eigenvector_1 = nx.eigenvector_centrality(self.get_Digraph(), max_iter=600)
-        Closeness_1 = nx.closeness_centrality(self.get_Digraph())
+        digraph_normal = self.get_Digraph()
+        degree_1 = digraph_normal.degree
+        indegree_1 = digraph_normal.in_degree
+        outdegree_1 = digraph_normal.out_degree
+        instrength_1 = self.det_instrength()
+        outstrength_1 = self.det_outstrength()
+        strength_1 = self.det_strength(instrength_1, outstrength_1)
+        Betweenness_1 = nx.betweenness_centrality(digraph_normal, normalized = True, weight = "weight")
+        Eigenvector_1 = nx.eigenvector_centrality(digraph_normal, max_iter=600)
+        Closeness_In = nx.closeness_centrality(digraph_normal,distance="weight")
+        Closeness_Out = nx.closeness_centrality(digraph_normal.reverse(),distance="weight")
+        relative_likelihood = self.det_relative_likelihood()
+        causal_contribution = self.det_causal_contribution()
         worksheet_nodes.write(row, col + 2, 'Degree')
         worksheet_nodes.write(row, col + 3, 'In Degree')
         worksheet_nodes.write(row, col + 4, 'Out Degree')
-        worksheet_nodes.write(row, col + 5, 'Betweenness')
-        worksheet_nodes.write(row, col + 6, 'Eigenvector')
-        worksheet_nodes.write(row, col + 7, 'Closeness')
+        worksheet_nodes.write(row, col + 5, 'Strength')
+        worksheet_nodes.write(row, col + 6, 'In Strength')
+        worksheet_nodes.write(row, col + 7, 'Out Strength')
+        worksheet_nodes.write(row, col + 8, 'Betweenness_normalized')
+        worksheet_nodes.write(row, col + 9, 'Eigenvector_normalized')
+        worksheet_nodes.write(row, col + 10, 'In_Closeness_normalized')
+        worksheet_nodes.write(row, col + 11, 'Out_Closeness_normalized')
+        worksheet_nodes.write(row, col + 12, 'Relative Likelihood')
+        worksheet_nodes.write(row, col + 13, 'Causal contribution')
 
         # Node information
         for i in self._node_ID.keys():
@@ -1095,14 +2491,30 @@ class digraphPlot(tk.Canvas, tk.Frame):
             worksheet_nodes.write(row + 1, col + 3, indegree_1(str(self._node_ID[i])))
             # OutDegree
             worksheet_nodes.write(row + 1, col + 4, outdegree_1(str(self._node_ID[i])))
+            # Strength
+            worksheet_nodes.write(row + 1, col + 5, strength_1.get((str(self._node_ID[i]))))
+            # In Strength
+            worksheet_nodes.write(row + 1, col + 6, instrength_1.get((str(self._node_ID[i]))))
+            # Out Strength
+            worksheet_nodes.write(row + 1, col + 7, outstrength_1.get((str(self._node_ID[i]))))
             # Betweenness
-            worksheet_nodes.write(row + 1, col + 5,
+            worksheet_nodes.write(row + 1, col + 8,
                                   Betweenness_1.get((str(self._node_ID[i]))))
             # Eigenvector
-            worksheet_nodes.write(row + 1, col + 6, Eigenvector_1.get((str(self._node_ID[i]))))
-            # Closeness
-            worksheet_nodes.write(row + 1, col + 7,
-                                  Closeness_1.get((str(self._node_ID[i]))))
+            worksheet_nodes.write(row + 1, col + 9, Eigenvector_1.get((str(self._node_ID[i]))))
+            # In_Closeness
+            worksheet_nodes.write(row + 1, col + 10,
+                                  Closeness_In.get((str(self._node_ID[i]))))
+            # Out_Closeness
+            worksheet_nodes.write(row + 1, col + 11,
+                                  Closeness_Out.get((str(self._node_ID[i]))))
+            # Relative Likelihood
+            worksheet_nodes.write(row + 1, col + 12,
+                                  relative_likelihood.get((str(self._node_ID[i]))))
+            # Causal Contribution
+            worksheet_nodes.write(row + 1, col + 13,
+                                  causal_contribution.get((str(self._node_ID[i]))))
+            
             row += 1
 
         row1 = 0
@@ -1117,7 +2529,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in range(len(self._adjacency_matrix)):
             worksheet_matrix.write(row1, col1, j)
             for k in range(len(self._adjacency_matrix)):
-                worksheet_matrix.write(row1, col1 + 1, self._adjacency_matrix[k][j])
+                worksheet_matrix.write(row1, col1 + 1, self._adjacency_matrix[j][k])
                 col1 += 1
             row1 += 1
             col1 = 0
@@ -1136,12 +2548,12 @@ class digraphPlot(tk.Canvas, tk.Frame):
         # InDegree
         worksheet_colormap.write('A60', 'In_Degree_Colormap:')
         self.plot_ColorMap(self.get_dict(indegree_1), 'In_Degree')
-        worksheet_colormap.insert_image('D60', 'Degree.png')
+        worksheet_colormap.insert_image('D60', 'In_Degree.png')
 
         # OutDegree
         worksheet_colormap.write('M1', 'Out_Degree_Colormap:')
         self.plot_ColorMap(self.get_dict(outdegree_1), 'Out_Degree')
-        worksheet_colormap.insert_image('P1', 'Degree.png')
+        worksheet_colormap.insert_image('P1', 'Out_Degree.png')
 
         # Eigenvector
         worksheet_colormap.write('M30', 'Eigenvector_Colormap:')
@@ -1153,10 +2565,40 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self.plot_ColorMap(Betweenness_1, 'Betweenness')
         worksheet_colormap.insert_image('P60', 'Betweenness.png')
 
-        # Closeness
-        worksheet_colormap.write('Y1', 'Closeness_Colormap:')
-        self.plot_ColorMap(Closeness_1, 'Closeness')
-        worksheet_colormap.insert_image('AA1', 'Closeness.png')
+        # In_Closeness
+        worksheet_colormap.write('Y1', 'In_Closeness_Colormap:')
+        self.plot_ColorMap(Closeness_In, 'In_Closeness')
+        worksheet_colormap.insert_image('AA1', 'In_Closeness.png')
+        
+        # Out_Closeness
+        worksheet_colormap.write('Y30', 'Out_Closeness_Colormap:')
+        self.plot_ColorMap(Closeness_Out, 'Out_Closeness')
+        worksheet_colormap.insert_image('AA30', 'Out_Closeness.png')
+        
+        # Relative Likelihood
+        worksheet_colormap.write('Y60', 'Relative Likelihood_Colormap:')
+        self.plot_ColorMap(relative_likelihood, 'Relative_Likelihood')
+        worksheet_colormap.insert_image('AA60', 'Relative_Likelihood.png')
+        
+        # Causal Contribution
+        worksheet_colormap.write('AJ1', 'Causal Contribution_Colormap:')
+        self.plot_ColorMap(causal_contribution, 'Causal_Contribution')
+        worksheet_colormap.insert_image('AN1', 'Causal_Contribution.png')
+        
+        # Strength
+        worksheet_colormap.write('AJ30', 'Strength_Colormap:')
+        self.plot_ColorMap(strength_1, 'Strength')
+        worksheet_colormap.insert_image('AN30', 'Strength.png')
+        
+        # In_strength
+        worksheet_colormap.write('AJ60', 'In_Strength_Colormap:')
+        self.plot_ColorMap(instrength_1, 'In_Strength')
+        worksheet_colormap.insert_image('AN60', 'In_Strength.png')
+        
+        # Out_strength
+        worksheet_colormap.write('AJ90', 'Out_Strength_Colormap:')
+        self.plot_ColorMap(outstrength_1, 'Out_Strength')
+        worksheet_colormap.insert_image('AN90', 'Out_Strength.png')
 
         '''
         # Robustness
@@ -1195,8 +2637,19 @@ class digraphPlot(tk.Canvas, tk.Frame):
         Outdegree = self.det_outdegree()
         Degree = self.det_degree(Indegree, Outdegree)
         betweenness_values = []
-        closeness_centrality_values = []
+        In_closeness_centrality_values = []
+        Out_closeness_centrality_values = []
         Eigenvector_Centrality_values = []
+        strength_list = []
+        instrength_1 = self.det_instrength()
+        outstrength_1 = self.det_outstrength()
+        instrength_list = []
+        outstrength_list = []
+        strength_1 = self.det_strength(instrength_1, outstrength_1)
+        relative_likelihood_list = []
+        relative_likelihood = self.det_relative_likelihood()
+        Causal_Contribution_list = []
+        Causal_Contribution = self.det_causal_contribution()
 
         # Distribution
         # Degree
@@ -1224,175 +2677,85 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self.plot_distribution(self.det_betweenness_one(betweenness_values), 5, "Betweenness_Distribution")
         worksheet_distribution.insert_image('S30', 'Betweenness_Distribution.png')
 
-        # Closeness
-        worksheet_distribution.write('P60', 'Closeness_Distribution')
-        self.plot_distribution(self.det_closeness_one(closeness_centrality_values), 6, "Closeness_Distribution")
-        worksheet_distribution.insert_image('S60', 'Closeness_Distribution.png')
+        # In_Closeness
+        worksheet_distribution.write('P60', 'In_Closeness_Distribution')
+        self.plot_distribution(self.det_in_closeness_one(In_closeness_centrality_values), 6, "In_Closeness_Distribution")
+        worksheet_distribution.insert_image('S60', 'In_Closeness_Distribution.png')
+        
+        # Out_Closeness
+        worksheet_distribution.write('P90', 'Out_Closeness_Distribution')
+        self.plot_distribution(self.det_out_closeness_one(Out_closeness_centrality_values), 7, "Out_Closeness_Distribution")
+        worksheet_distribution.insert_image('S90', 'Out_Closeness_Distribution.png')
+        
+        # Strength
+        worksheet_distribution.write('AE1', 'Strength_Distribution')
+        for i in range(len(strength_1)):
+            strength_list.append(strength_1.get(str(i)))
+        self.plot_distribution(strength_list, 8, "Strength_Distribution")
+        worksheet_distribution.insert_image('AH1', 'Strength_Distribution.png')
+        # In Strength
+        worksheet_distribution.write('AE30', 'In_Strength_Distribution')
+        for i in range(len(instrength_1)):
+            instrength_list.append(instrength_1.get(str(i)))
+        self.plot_distribution(instrength_list, 9, "In_Strength_Distribution")
+        worksheet_distribution.insert_image('AH30', 'In_Strength_Distribution.png')
+        
+        # Out Strength
+        worksheet_distribution.write('AE60', 'Out_Strength_Distribution')
+        outstrength_1 = self.det_instrength()
+        for i in range(len(outstrength_1)):
+            outstrength_list.append(outstrength_1.get(str(i)))
+        self.plot_distribution(outstrength_list, 10, "Out_Strength_Distribution")
+        worksheet_distribution.insert_image('AH60', 'Out_Strength_Distribution.png')
+        
+        # Relative likelihood
+        worksheet_distribution.write('AE90', 'Relative_Likelihood')
+        for i in range(len(relative_likelihood)):
+            relative_likelihood_list.append(relative_likelihood.get(str(i)))
+        self.plot_distribution(relative_likelihood_list, 11, 'Relative_Likelihood')
+        worksheet_distribution.insert_image('AH90', 'Relative_Likelihood.png')
+        # Causal Contribution
+        worksheet_distribution.write('AE120', 'Closeness_Distribution')
+        for i in range(len(Causal_Contribution)):
+            Causal_Contribution_list.append(Causal_Contribution.get(str(i)))
+        self.plot_distribution(Causal_Contribution_list, 12, 'Causal_Contribution')
+        worksheet_distribution.insert_image('AH120', 'Causal_Contribution.png')
 
         workbook.close()
-
-
+        
+    
     def add_button(self):
         """Add button on canvas and bind the clicks on a button to the left clicks."""
 
-        buttonGatherExcel = tk.Button(self._frame_two, text="Results", width=50, activebackground="#33B5E5")
+        buttonGatherExcel = tk.Button(self._frame_two, text="Results", width=100, activebackground="#33B5E5")
         buttonGatherExcel.bind("<Button-1>", lambda evt: self.excel_Gather())
         buttonGatherExcel.pack()
 
 
-        buttonInitial = tk.Button(self._frame_two, text="Initial_Digraph", width=50, activebackground="#33B5E5")
+        buttonInitial = tk.Button(self._frame_two, text="Initial_Digraph", width=100, activebackground="#33B5E5")
         buttonInitial.bind("<Button-1>", lambda evt: self.plot_Digraph_initial())
         buttonInitial.pack()
 
-        buttonDegree = tk.Button(self._frame_two, text="Degree", width=50, activebackground="#33B5E5")
-        buttonDegree.bind("<Button-1>",
-                          lambda evt: self.plot_ColorMap(self.get_dict(self.get_Digraph().degree()), 'Degree'))
-        buttonDegree.pack()
-
-        buttonInDegree = tk.Button(self._frame_two, text="InDegree", width=50, activebackground="#33B5E5")
-        buttonInDegree.bind("<Button-1>",
-                            lambda evt: self.plot_ColorMap(self.get_dict(self.get_Digraph().in_degree()), 'InDegree'))
-        buttonInDegree.pack()
-
-        buttonOutDegree = tk.Button(self._frame_two, text="OutDegree", width=50, activebackground="#33B5E5")
-        buttonOutDegree.bind("<Button-1>",
-                             lambda evt: self.plot_ColorMap(self.get_dict(self.get_Digraph().out_degree()),
-                                                            'OutDegree'))
-        buttonOutDegree.pack()
-
-        buttonCloseness = tk.Button(self._frame_two, text="Closeness", width=50, activebackground="#33B5E5")
-        buttonCloseness.bind("<Button-1>",
-                             lambda evt: self.plot_ColorMap(nx.closeness_centrality(self.get_Digraph()), 'Closeness'))
-        buttonCloseness.pack()
-
-        buttonEigenvector = tk.Button(self._frame_two, text="Eigenvector", width=50, activebackground="#33B5E5")
-        buttonEigenvector.bind("<Button-1>",
-                               lambda evt: self.plot_ColorMap_eigen(
-                                   nx.eigenvector_centrality(self.get_Digraph(), max_iter=600), 'Eigenvector'))
-        buttonEigenvector.pack()
-
-        buttonBetweenness = tk.Button(self._frame_two, text="Betweenness", width=50, activebackground="#33B5E5")
-        buttonBetweenness.bind("<Button-1>",
-                               lambda evt: self.plot_ColorMap(nx.betweenness_centrality(self.get_Digraph()),
-                                                              'Betweenness'))
-        buttonBetweenness.pack()
-
-        buttonInitialHQ = tk.Button(self._frame_two, text="Initial_Digraph_HQ", width=50, activebackground="#33B5E5")
-        buttonInitialHQ.bind("<Button-1>", lambda evt: self.openImage('initial_Digraph.png'))
-        buttonInitialHQ.pack()
-
-        buttonDegreeHQ = tk.Button(self._frame_two, text="Degree_HQ", width=50, activebackground="#33B5E5")
-        buttonDegreeHQ.bind("<Button-1>", lambda evt: self.openImage('Degree.png'))
-        buttonDegreeHQ.pack()
-
-        buttonInDegreeHQ = tk.Button(self._frame_two, text="InDegree_HQ", width=50, activebackground="#33B5E5")
-        buttonInDegreeHQ.bind("<Button-1>", lambda evt: self.openImage('InDegree.png'))
-        buttonInDegreeHQ.pack()
-
-        buttonOutDegreeHQ = tk.Button(self._frame_two, text="OutDegree_HQ", width=50, activebackground="#33B5E5")
-        buttonOutDegreeHQ.bind("<Button-1>", lambda evt: self.openImage('OutDegree.png'))
-        buttonOutDegreeHQ.pack()
-
-        buttonClosenessHQ = tk.Button(self._frame_two, text="Closeness_HQ", width=50, activebackground="#33B5E5")
-        buttonClosenessHQ.bind("<Button-1>", lambda evt: self.openImage('Closeness.png'))
-        buttonClosenessHQ.pack()
-
-        buttonEigenvectorHQ = tk.Button(self._frame_two, text="Eigenvector_HQ", width=50, activebackground="#33B5E5")
-        buttonEigenvectorHQ.bind("<Button-1>", lambda evt: self.openImage('Eigenvector.png'))
-        buttonEigenvectorHQ.pack()
-
-        buttonBetweennessHQ = tk.Button(self._frame_two, text="Betweenness_HQ", width=50, activebackground="#33B5E5")
-        buttonBetweennessHQ.bind("<Button-1>", lambda evt: self.openImage('Betweenness.png'))
-        buttonBetweennessHQ.pack()
-
-        PlotDegree_Robustness = tk.Button(self._frame_two, text="Robustness_Degree", width=50,
-                                          activebackground="#33B5E5")
-        PlotDegree_Robustness.bind("<Button-1>", lambda evt: self.delete_by_degree_connected())
-        PlotDegree_Robustness.pack()
-
-        PlotDegree_Robustness = tk.Button(self._frame_two, text="Robustness_In_Degree", width=50,
-                                          activebackground="#33B5E5")
-        PlotDegree_Robustness.bind("<Button-1>", lambda evt: self.delete_by_In_degree_connected())
-        PlotDegree_Robustness.pack()
-
-        PlotDegree_Robustness = tk.Button(self._frame_two, text="Robustness_Out_Degree", width=50,
-                                          activebackground="#33B5E5")
-        PlotDegree_Robustness.bind("<Button-1>", lambda evt: self.delete_by_Out_degree_connected())
-        PlotDegree_Robustness.pack()
-
-        PlotDegree_Robustness = tk.Button(self._frame_two, text="Robustness_Closeness", width=50,
-                                          activebackground="#33B5E5")
-        PlotDegree_Robustness.bind("<Button-1>", lambda evt: self.delete_by_Closeness_connected())
-        PlotDegree_Robustness.pack()
-
-        PlotDegree_Robustness = tk.Button(self._frame_two, text="Robustness_Eigenvector", width=50,
-                                          activebackground="#33B5E5")
-        PlotDegree_Robustness.bind("<Button-1>", lambda evt: self.delete_by_Eigenvector_connected())
-        PlotDegree_Robustness.pack()
-
-        PlotDegree_Robustness = tk.Button(self._frame_two, text="Robustness_Betweenness", width=50,
-                                          activebackground="#33B5E5")
-        PlotDegree_Robustness.bind("<Button-1>", lambda evt: self.delete_by_Betweenness_connected())
-        PlotDegree_Robustness.pack()
-
-        Indegree = self.det_indegree()
-        Outdegree = self.det_outdegree()
-        Degree = self.det_degree(Indegree, Outdegree)
-        Degree_Distribution = tk.Button(self._frame_two, text="Degree_Distribution", width=50,
-                                        activebackground="#33B5E5")
-        Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(Degree, 1, "Degree_Distribution"))
-        Degree_Distribution.pack()
-
-        In_Degree_Distribution = tk.Button(self._frame_two, text="Indegree_Distribution", width=50,
-                                           activebackground="#33B5E5")
-        In_Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(Indegree, 2,
-                                                                                     "In_Degree_Distribution"))
-        In_Degree_Distribution.pack()
-
-        Out_Degree_Distribution = tk.Button(self._frame_two, text="Outdegree_Distribution", width=50,
-                                            activebackground="#33B5E5")
-        Out_Degree_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(Outdegree, 3,
-                                                                                      "Out_Degree_Distribution"))
-        Out_Degree_Distribution.pack()
-
-        betweenness_values = []
-        closeness_centrality_values = []
-        Eigenvector_Centrality_values = []
-
-        closeness_centrality_Distribution = tk.Button(self._frame_two, text="Closeness_Distribution", width=50,
-                                                      activebackground="#33B5E5")
-        closeness_centrality_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(
-            self.det_closeness_one(closeness_centrality_values), 4, "Closeness_Distribution"))
-        closeness_centrality_Distribution.pack()
-
-        Eigenvector_Distribution = tk.Button(self._frame_two, text="Eigenvector_Distribution", width=50,
-                                             activebackground="#33B5E5")
-        Eigenvector_Distribution.bind("<Button-1>", lambda evt: self.plot_distribution(
-            self.det_eigenvector_one(Eigenvector_Centrality_values), 5, "Eigenvector_Distribution"))
-        Eigenvector_Distribution.pack()
-
-        Betweenness_Distribution = tk.Button(self._frame_two, text="Betweenness_Distribution", width=50,
-                                             activebackground="#33B5E5")
-        Betweenness_Distribution.bind("<Button-1>",
-                                      lambda evt: self.plot_distribution(self.det_betweenness_one(betweenness_values),
-                                                                         6, "Betweenness_Distribution"))
-        Betweenness_Distribution.pack()
-
     def det_betweenness_one(self, betweenness_values):
-        for k in range(len(nx.betweenness_centrality(self.get_Digraph()))):
-            betweenness_values.append(nx.betweenness_centrality(self.get_Digraph()).get(str(k)))
+        for k in range(len(nx.betweenness_centrality(self._digraph_normal,normalized=True,weight="weight"))):
+            betweenness_values.append(nx.betweenness_centrality(self._digraph_normal).get(str(k)))
         return betweenness_values
 
     def det_eigenvector_one(self, Eigenvector_Centrality_values):
-        for n in range(len(nx.eigenvector_centrality(self.get_Digraph(), tol=1e-03, max_iter=600))):
+        for n in range(len(nx.eigenvector_centrality(self._digraph_normal, tol=1e-03, max_iter=600))):
             Eigenvector_Centrality_values.append(
-                nx.eigenvector_centrality(self.get_Digraph(), tol=1e-03, max_iter=600).get(str(n)))
+                nx.eigenvector_centrality(self._digraph_normal, tol=1e-03, max_iter=600).get(str(n)))
         return Eigenvector_Centrality_values
 
-    def det_closeness_one(self, closeness_centrality_values):
-        for m in range(len(nx.closeness_centrality(self.get_Digraph()))):
-            closeness_centrality_values.append(nx.closeness_centrality(self.get_Digraph()).get(str(m)))
-        return closeness_centrality_values
+    def det_in_closeness_one(self, in_closeness_centrality_values):
+        for m in range(len(nx.closeness_centrality(self._digraph_normal))):
+            in_closeness_centrality_values.append(nx.closeness_centrality(self._digraph_normal,distance="weight").get(str(m)))
+        return in_closeness_centrality_values
+    
+    def det_out_closeness_one(self, out_closeness_centrality_values):
+        for m in range(len(nx.closeness_centrality(self._digraph_normal.reverse()))):
+            out_closeness_centrality_values.append(nx.closeness_centrality(self._digraph_normal.reverse(),distance="weight").get(str(m)))
+        return out_closeness_centrality_values
 
     def entryValueRemove(self):
         """Get the type-in texts (nodes need to be eliminated) and store in a list."""
@@ -1401,6 +2764,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._delete_node.append(i)
         self._matrix.deleteNode(self._delete_node)
         self._adjacency_matrix = self._matrix.adjacency_matrix()
+        self._digraph_normal = self.get_Digraph()
 
 
 if __name__ == "__main__":
@@ -1409,4 +2773,6 @@ if __name__ == "__main__":
     root.geometry("1600x1600")
     digraphPlot(root)
     root.update()
+    print("[{}] finished root update()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
     root.mainloop()
+    print("[{}] finished root mainloop()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
