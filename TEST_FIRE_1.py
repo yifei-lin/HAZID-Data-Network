@@ -14,6 +14,7 @@ import matplotlib
 from datetime import datetime
 from tqdm import tqdm
 
+
 matplotlib.use('TkAgg')
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -540,11 +541,16 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._buttonEntry = tk.Button(self._frame_two, text="Remove", width=100)
         self._buttonEntry.bind("<Button-1>", lambda evt: self.entryValueRemove())
         self._buttonEntry.pack()
+        button_random = Button( self._frame_two , text = "random_robustness", command = self.start_random_robustness, width=100).pack()
         self._largest_component = []
         self._deleted_node = []
         self._node_neighbor = self.neighbor_of_nodes()
         self._number_of_remaining_nodes = []
         self._largest_connected_component = []
+        self._node_left = []
+        self._total_node = []
+        for j in range(0, 320):
+            self._total_node.append(j)
         print("\n[{}] finished digraphPlot init()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
 
     def get_color(self,k):
@@ -582,7 +588,84 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._master.title(self._filename)
             self._excel_name = self._filename
             return self._filename
-
+        
+    def start_random_robustness(self):
+        """Monte Carlo simulation"""
+        stored_matrix = self._matrix
+        stored_node_left = self._node_left
+        for i in range(0, len(self._adjacency_matrix)):
+            self._node_left.append(i)
+        area = 10000000
+        a = 0
+        for i in range(2):
+            ### keep run until the simulation time has reached
+            b = len(self._digraph_normal)
+            while b != 0:
+                nodeID = int(np.random.choice(self._node_left))
+                nodeID_list = [nodeID]
+                self._node_left.remove(nodeID)
+                if len(self._number_of_remaining_nodes) > 1:
+                    if self._number_of_remaining_nodes[-1] != len(self._digraph_normal):
+                        self._number_of_remaining_nodes.append(len(self._digraph_normal))
+                else:
+                    self._number_of_remaining_nodes.append(len(self._digraph_normal))
+                self._matrix.deleteNode(nodeID_list)
+                self._adjacency_matrix = self._matrix.adjacency_matrix()
+                self._digraph_normal = self.get_Digraph()
+                if len(self._digraph_normal) == 0:
+                    break
+            self._number_of_remaining_nodes.append(0)
+            node_total = pd.Series(self._total_node, name='first_column')
+            remaining_total = pd.Series(self._number_of_remaining_nodes,name='second_column')
+            if len(self._number_of_remaining_nodes) < len(self._total_node):
+                for i in range(len(self._total_node)-len(self._number_of_remaining_nodes)):
+                    self._number_of_remaining_nodes.append(0)
+            randomarray = {'first_column':self._total_node,
+                                'second_column':self._number_of_remaining_nodes}
+            df = pd.DataFrame(randomarray)
+            
+            df1 = pd.concat([node_total, remaining_total], axis=1)
+            ### Store line to figure
+            a += 1
+            y=  df['second_column']
+            x1 = df['first_column']
+            y_1 = df1['second_column']
+            x1_1 = df1['first_column']
+            area1 = int(simps(np.array(y), x=np.array(x1)))
+            if area > area1:
+                area = area1
+            if a == 1:
+                plt.plot(x1_1, y_1, color = 'r', label = "Monte Carlo Simulation, least area under curve: " + str(area), alpha=0.25)
+            if a != 1:
+                plt.plot(x1_1, y_1, color = 'r', alpha=0.25)
+            
+            self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_ID = self._matrix.get_node_ID()
+            self._digraph_normal = self.get_Digraph()
+            print(len(self._digraph_normal))
+            self._node_left = stored_node_left
+            self._number_of_remaining_nodes = []
+            for i in range(0, len(self._adjacency_matrix)):
+                self._node_left.append(i)
+        loc1 = ("Total_Robustness.xlsx")
+        excel_data = pd.read_excel(loc1)
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Betweenness'], color='g', label='Betweenness Area Under Curve: 13,623')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='tab:purple', label='Degree Area Under Curve: 18,116')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Strength'], color='m', label='Strength Area Under Curve: 18,208')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Degree'], color='y', label='In Degree Area Under Curve: 20,023')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Strength'], color='b', label='In Strength Area Under Curve: 20,276')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Closeness'], color='tab:pink', label='In Closeness Area Under Curve: 23,803')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='k', label='Out Degree Area Under Curve: 31,233')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Strength'], color='c', label='Out Strength Area Under Curve: 31,663')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Closeness'], color='tab:olive', label='Out Closeness Area Under Curve: 35,225')
+        plt.title("Monte Carlo Simulation Compare Demo")
+        plt.xlabel("Number of Removed Nodes")
+        plt.ylabel("Number of Remaining Nodes")
+        plt.legend()
+        plt.show()
+            
+            
     def re_excel(self):
         """Select another excel file under same direction with this file
            Create Matrix, Redraw the frame and canvas.
@@ -994,7 +1077,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of degree')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1044,7 +1127,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node) + 1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of Out_Degree')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1095,7 +1178,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node) + 1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of In_Degree')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1148,7 +1231,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of In_Closeness')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1201,7 +1284,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of Out_Closeness')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1256,7 +1339,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of Eigenvector')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1310,7 +1393,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of Betweenness')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1369,7 +1452,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of Strength')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1424,7 +1507,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of In_Strength')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1479,7 +1562,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of Out_Strength')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1534,7 +1617,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of relative_likelihood')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -1589,7 +1672,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._number_of_remaining_nodes.append(0)
         sub1.plot(a, self._number_of_remaining_nodes)
         y = np.array(self._number_of_remaining_nodes)
-        area = int(simps(y, dx=len(self._deleted_node)+1))
+        area = int(simps(y, x=np.array(a)))
         sub1.text(20, 150, 'The area under curve is ' + str(area))
         sub1.set_title('Nodes elimination follows order of causal_contribution')
         sub1.set_xlabel('Number of Removed Nodes')
@@ -2702,17 +2785,17 @@ class digraphPlot(tk.Canvas, tk.Frame):
         worksheet_distribution.insert_image('AH60', 'Out_Strength_Distribution.png')
         
         # Relative likelihood
-        worksheet_distribution.write('AE90', 'Relative_Likelihood')
+        worksheet_distribution.write('AE90', 'Relative_Likelihood_Distribution')
         for i in range(len(relative_likelihood)):
             relative_likelihood_list.append(relative_likelihood.get(str(i)))
-        self.plot_distribution(relative_likelihood_list, 11, 'Relative_Likelihood')
-        worksheet_distribution.insert_image('AH90', 'Relative_Likelihood.png')
+        self.plot_distribution(relative_likelihood_list, 11, 'Relative_Likelihood_Distribution')
+        worksheet_distribution.insert_image('AH90', 'Relative_Likelihood_Distribution.png')
         # Causal Contribution
-        worksheet_distribution.write('AE120', 'Closeness_Distribution')
+        worksheet_distribution.write('AE120', 'Caucal_Contribution_Distribution')
         for i in range(len(Causal_Contribution)):
             Causal_Contribution_list.append(Causal_Contribution.get(str(i)))
-        self.plot_distribution(Causal_Contribution_list, 12, 'Causal_Contribution')
-        worksheet_distribution.insert_image('AH120', 'Causal_Contribution.png')
+        self.plot_distribution(Causal_Contribution_list, 12, 'Causal_Contribution_Distribution')
+        worksheet_distribution.insert_image('AH120', 'Causal_Contribution_Distribution.png')
 
         workbook.close()
         
