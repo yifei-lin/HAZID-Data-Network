@@ -13,6 +13,7 @@ import tkinter as tk
 import matplotlib
 from datetime import datetime
 from tqdm import tqdm
+import seaborn as sns; sns.set_theme(color_codes=True)
 
 
 matplotlib.use('TkAgg')
