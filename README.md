@@ -48,4 +48,4 @@ Now launch `Spyder (caneta)`
 * Edge Weight:
   * Red : 1, Blue : 2, Green : 3, Yellow : 4, Black : 5, Purple : 6, Grey : 7, Orange : 8, Fuchsia : 9, Olive: 10, Cyan : 11, Brown : 12
 ## Notes and Acknowledgements
-The code is developed using Python written by Yifei Lin `contact: yifei.lin@uq.edu.au`. The project is proposed by Dr Ben Seligmann `contact: b.seligmann@uq.edu.au`, and supervised by Associate Professor Steven Micklethwaite `s.micklethwaite@uq.edu.au`, Dr Ben Seligmann and Dr David Lange `contact: d.lange@uq.edu.au`.
+The code is developed using Python written by Yifei Lin `contact: yifei.lin@uq.edu.au`. The project is proposed by Dr Ben Seligmann `contact: b.seligmann@uq.edu.au`, and supervised by Associate Professor Steven Micklethwaite contact: `s.micklethwaite@uq.edu.au`, Dr Ben Seligmann and Dr David Lange `contact: d.lange@uq.edu.au`.
