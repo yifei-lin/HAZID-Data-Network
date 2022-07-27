@@ -37,6 +37,7 @@ class Matrix():
         self._df = self.read_sheet(self._excel_name)
         self._gather_list = []
         self._adjacency_matrix = []
+        self._removed_nodes = []
         self.gcm()
 
     def read_sheet(self, file_name, skiprows=0):
@@ -598,10 +599,12 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._node_left.append(i)
         area = 10000000
         a = 0
-        for i in range(2):
+        final_left_nodes = []
+        for i in range(20):
             ### keep run until the simulation time has reached
             b = len(self._digraph_normal)
             while b != 0:
+                
                 nodeID = int(np.random.choice(self._node_left))
                 nodeID_list = [nodeID]
                 self._node_left.remove(nodeID)
@@ -612,6 +615,14 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     self._number_of_remaining_nodes.append(len(self._digraph_normal))
                 self._matrix.deleteNode(nodeID_list)
                 self._adjacency_matrix = self._matrix.adjacency_matrix()
+                for i in self._node_left:
+                    for j in self._node_left:
+                        if self._adjacency_matrix[i][j] != 0:
+                            final_left_nodes.append(i)
+                            final_left_nodes.append(j)
+                final_left_nodes = list(set(final_left_nodes))
+                self._node_left = final_left_nodes
+                final_left_nodes = []
                 self._digraph_normal = self.get_Digraph()
                 if len(self._digraph_normal) == 0:
                     break
