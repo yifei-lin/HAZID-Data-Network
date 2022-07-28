@@ -600,7 +600,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         area = 10000000
         a = 0
         final_left_nodes = []
-        for i in range(20):
+        for i in range(1):
             ### keep run until the simulation time has reached
             b = len(self._digraph_normal)
             while b != 0:
@@ -662,15 +662,23 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 self._node_left.append(i)
         loc1 = ("Total_Robustness.xlsx")
         excel_data = pd.read_excel(loc1)
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Betweenness'], color='g', label='Betweenness Area Under Curve: 13,623')
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='tab:purple', label='Degree Area Under Curve: 18,116')
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Strength'], color='m', label='Strength Area Under Curve: 18,208')
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Degree'], color='y', label='In Degree Area Under Curve: 20,023')
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Strength'], color='b', label='In Strength Area Under Curve: 20,276')
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Closeness'], color='tab:pink', label='In Closeness Area Under Curve: 23,803')
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='k', label='Out Degree Area Under Curve: 31,233')
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Strength'], color='c', label='Out Strength Area Under Curve: 31,663')
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Closeness'], color='tab:olive', label='Out Closeness Area Under Curve: 35,225')
+
+        total_robustness_new = {'Number of removed Nodes':excel_data['Number of removed Nodes'],
+                                'Metric & Area Under Curve': excel_data['Metric & Area Under Curve'],
+                            'Betweenness Area Under Curve: 13,623':excel_data['Number of Remaining Nodes Betweenness'],
+                            'Degree Area Under Curve: 18,116': excel_data['Number of Remaining Nodes Degree']}
+        df = pd.DataFrame(total_robustness_new)
+        df.pivot(index='Number of removed Nodes', columns='Metric & Area Under Curve', values=['Betweenness Area Under Curve: 13,623','Degree Area Under Curve: 18,116'])
+        print(df)
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Betweenness'], color='g', marker='.', label='Betweenness Area Under Curve: 13,623')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='tab:purple', marker = '1', label='Degree Area Under Curve: 18,116')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Strength'], color='m', marker = 'x', label='Strength Area Under Curve: 18,208')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Degree'], color='y', marker = 4,label='In Degree Area Under Curve: 20,023')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Strength'], color='b', marker = 6,label='In Strength Area Under Curve: 20,276')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Closeness'], color='tab:pink', marker = '|',label='In Closeness Area Under Curve: 23,803')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='k', marker = '2',label='Out Degree Area Under Curve: 31,233')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Strength'], color='c', marker = '+',label='Out Strength Area Under Curve: 31,663')
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Closeness'], color='tab:olive', marker = '*',label='Out Closeness Area Under Curve: 35,225')
         plt.title("Monte Carlo Simulation Compare Demo")
         plt.xlabel("Number of Removed Nodes")
         plt.ylabel("Number of Remaining Nodes")
