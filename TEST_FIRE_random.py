@@ -22,6 +22,7 @@ from tqdm import tqdm
 import seaborn as sns; sns.set_theme(color_codes=True)
 from numba import vectorize
 import numba 
+import copy
 
 
 
@@ -55,6 +56,21 @@ class Matrix():
         ## Pandas in use
         df = pd.read_excel(file_name, skiprows=skiprows)
         return df
+    
+    def update_matrix(self,adjacency_matrix):
+        self._adjacency_matrix = adjacency_matrix
+        
+    def update_node_weight(self,node_weight):
+        self._node_weight = node_weight
+        
+    def update_node_ID(self,node_ID):
+        self._node_ID = node_ID
+        
+    def update_gather_list(self,gather_list):
+        self._gather_list = gather_list
+        
+    def update_removed_nodes(self,removed_nodes):
+        self._removed_nodes = removed_nodes
 
     def checkSame(self, nodeName, dictionaryName):
         """(Boolean): Returns true while nodeName's lower cases equals any keys inside input dictionary.
@@ -606,32 +622,38 @@ class digraphPlot(tk.Canvas, tk.Frame):
         """Monte Carlo simulation"""
         
         stored_matrix = self._adjacency_matrix.copy()
+        stored_node_ID = copy.deepcopy(self._node_ID)
+        stored_node_weight = copy.deepcopy(self._node_weight)
+        stored_node_left = self._node_left
         for i in range(0, len(self._adjacency_matrix)):
             self._node_left.append(i)
-        area = 13623
-        ok = 1
+        area = 3000
+        a=0
         times = 0
         for i in range(2000):
             ### keep run until the simulation time has reached
-            b = len(self._digraph_normal_nocolor)
-            while b != 0:
+            
+            while len(self.get_Digraph_Nocolor()) != 0:
+                print(len(self._node_left))
                 nodeID = int(np.random.choice(self._node_left, size=1))
                 nodeID_list = [nodeID]
                 self._node_left.remove(nodeID)
-                print("Start node removing")
                 self._number_of_remaining_nodes.append(len(self._digraph_normal_nocolor))
                 self._matrix.deleteNode(nodeID_list)
-                print("End node removing")
+                
                 self._adjacency_matrix = self._matrix.adjacency_matrix()
                 final_left_nodes = [k for i in self._node_left for j in self._node_left for k in (i,j) if self._adjacency_matrix[i][j] != 0]
                 final_left_nodes = list(set(final_left_nodes))
                 self._node_left = final_left_nodes
                 final_left_nodes = None
-                self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
+                print(len(self._digraph_normal_nocolor))
                 nodeID_list = None
                 nodeID=None
+                self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
                 if len(self._digraph_normal_nocolor) == 0:
                     break
+                
+            
             self._number_of_remaining_nodes.append(0)
             node_total = pd.Series(self._total_node, name='first_column')
             remaining_total = pd.Series(self._number_of_remaining_nodes,name='second_column')
@@ -643,15 +665,15 @@ class digraphPlot(tk.Canvas, tk.Frame):
             df = pd.DataFrame(randomarray)
             df1 = pd.concat([node_total, remaining_total], axis=1)
             ### Store line to figure
-    
+            a += 1
             y=  df['second_column']
             x1 = df['first_column']
             y_1 = df1['second_column']
             x1_1 = df1['first_column']
             area1 = int(simps(np.array(y), x=np.array(x1)))
-            if area > area1 and ok == 1:
+            if area > area1:
                 area = area1
-                workbook = xlsxwriter.Workbook('Robustness_Random_Remaining_Nodes.xlsx')
+                workbook = xlsxwriter.Workbook('Robustness_Random_Remaining_Nodes'+ str(area) +'.xlsx')
                 worksheet_robustness = workbook.add_worksheet('Robustness')
                 worksheet_robustness.write("A1", "No. of Nodes")
                 worksheet_robustness.write("B1", "Number of Remaining Nodes")
@@ -663,7 +685,11 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     worksheet_robustness.write(row2,1, str(j))
                     row2+=1
                 workbook.close()
-                ok +=1
+               
+            if a == 1999:
+                plt.plot(x1_1, y_1, color = 'r', label = "Monte Carlo Simulation, least area under curve: " + str(area), alpha=0.25)
+            if a != 1999:
+                plt.plot(x1_1, y_1, color = 'r', alpha=0.25)
             randomarray=None
             node_total = None
             remaining_total = None
@@ -674,14 +700,22 @@ class digraphPlot(tk.Canvas, tk.Frame):
             y_1=None
             x1_1=None
             area1=None
-            self._adjacency_matrix = stored_matrix
-            self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
-            print(len(self._digraph_normal_nocolor))
+            self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._node_ID = self._matrix.get_node_ID()
+            self._digraph_normal = self.get_Digraph()
+            print(len(self._digraph_normal))
+            
             self._number_of_remaining_nodes = []
             for i in range(0, len(self._adjacency_matrix)):
                 self._node_left.append(i)
             print("run for" + str(times) + "times")
             times += 1
+        plt.title("Monte Carlo Simulation Izok 2000 times")
+        plt.xlabel("Number of Removed Nodes")
+        plt.ylabel("Number of Remaining Nodes")
+        plt.legend()
+        plt.show()
             
             
     def re_excel(self):
