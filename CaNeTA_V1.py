@@ -42,6 +42,7 @@ class Matrix():
         self._adjacency_matrix = []
         self._removed_nodes = []
         self.gcm()
+        
 
     def read_sheet(self, file_name, skiprows=0):
         """(pd.dataframe): Returns the first sheet of the excel file"""
@@ -544,6 +545,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
                                  "In_Closeness", "Out_Closeness", "Betweenness", "Relative_Likelihood", "Causal_Contribution"]
         self._frame_two = tk.Frame(self._master, bg='grey')
         self._frame_two.pack()
+        
         self.add_button()
         self.clicked = StringVar()
         self.clicked.set("Degree")
@@ -565,6 +567,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
         button_random = Button( self._frame_two , text = "Random_Robustness", command = self.start_random_robustness, width=100).pack()
         button_total_robustness_remaining = Button( self._frame_two , text = "Total_Robustness_Remaining", command = self.start_total_robustness_remaining, width=100).pack()
         button_total_robustness_connected = Button( self._frame_two , text = "Total_Robustness_Connected", command = self.start_total_robustness_connected, width=100).pack()
+        self._chosen_metric_for_optimal = ('Degree','In Degree', 'Out Degree', 'In Closeness', 'Out Closeness', 'Betweenness', 'In Strength', 'Out Strength', 'Strength')
+        
+        button_find_optimal = Button( self._frame_two , text = "Start Optimal", command = self.start_optimal, width=100).pack()
         self._largest_component = []
         self._deleted_node = []
         self._node_neighbor = self.neighbor_of_nodes()
@@ -652,6 +657,146 @@ class digraphPlot(tk.Canvas, tk.Frame):
         plt.legend(fontsize=22)
         plt.savefig("total_robustness_Connected.png", dpi=500, pad_inches=0)
         
+    def start_optimal(self):
+        c=0
+        count = -1
+        name = ''
+        
+        while len(self._digraph_normal_nocolor) != 0:
+            self._number_of_remaining_nodes.append(len(self._digraph_normal_nocolor))
+            chosen_metric_actions = {'Degree':self._digraph_normal_nocolor.degree,
+                                           'In Degree': self._digraph_normal_nocolor.out_degree,
+                                           'Out Degree': self._digraph_normal_nocolor.in_degree,
+                                           'In Closeness':nx.closeness_centrality(self._digraph_normal_nocolor,distance="weight"),
+                                           'Out Closeness': nx.closeness_centrality(self._digraph_normal_nocolor.reverse(),distance="weight"),
+                                           'Betweenness': nx.betweenness_centrality(self._digraph_normal_nocolor,normalized=True,weight="weight"),
+                                           'In Strength':self.det_instrength(),
+                                           'Out Strength': self.det_outstrength(),
+                                           'Strength': self.det_strength_1()}
+            name_node = []
+            for i in self._chosen_metric_for_optimal:
+                a = chosen_metric_actions.get(i)
+                c+=1
+                if c < 4:
+                        
+                    for j in a:
+                        if j[1] > count:
+                            count = j[1]
+                            name = j[0]
+                elif c >=4:
+                    for k in a:
+                        if a[k] > count:
+                            count = a[k]
+                            name = k
+                name_node.append(name)
+                name = ''
+                count=-1
+          
+            '''
+            CopyOfMatrix = type('CopyOfMatrix', self._matrix.__bases__, dict(self._matrix.__dict__))
+            stored_matrix = copy.deepcopy(self._matrix._adjacency_matrix)
+            stored_node_weight = copy.deepcopy(self._matrix._node_weight)
+            stored_node_ID = copy.deepcopy(self._matrix._node_ID)
+            stored_gather_list = copy.deepcopy(self._matrix._gather_list)
+            '''
+         
+            Number_of_Remaining_Nodes_Each = {}
+            
+            for chosen_node in name_node:
+            
+                self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
+                for i in self._deleted_node:
+                    self._matrix.deleteNode([int(i)])
+                self._adjacency_matrix = self._matrix.adjacency_matrix()
+                self._node_ID = self._matrix.get_node_ID()
+                self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
+                print(len(self._digraph_normal_nocolor))
+                self._matrix.deleteNode([int(chosen_node)])
+                self._adjacency_matrix = self._matrix._adjacency_matrix
+                self._node_ID = self._matrix.get_node_ID()
+                self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
+                Number_of_Remaining_Nodes_Each[int(chosen_node)] = len(self._digraph_normal_nocolor)
+                
+                '''
+                self._matrix.update_matrix(stored_matrix)
+                self._matrix.update_node_weight(stored_node_weight)
+                self._matrix.update_node_ID(stored_node_ID)
+                self._matrix.update_gather_list(stored_gather_list)
+                '''
+    
+            maxgradient = 10000000
+            Node_need = 0
+            print(Number_of_Remaining_Nodes_Each)
+            for node_ID in Number_of_Remaining_Nodes_Each.keys():
+                if Number_of_Remaining_Nodes_Each.get(node_ID) <= maxgradient:
+                    maxgradient = Number_of_Remaining_Nodes_Each.get(node_ID)
+                    Node_need = node_ID
+            print(Node_need)
+            self._matrix.deleteNode([Node_need])
+            self._deleted_node.append(str(Node_need))
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
+            
+            
+            c=0
+            maxgradient = None
+            Number_of_Remaining_Nodes_Each = None
+            if len(self._digraph_normal_nocolor) == 0:
+                    break
+                
+            
+        self._number_of_remaining_nodes.append(0)
+        print(self._number_of_remaining_nodes)
+        node_total = pd.Series(self._total_node, name='first_column')
+        remaining_total = pd.Series(self._number_of_remaining_nodes,name='second_column')
+        if len(self._number_of_remaining_nodes) < len(self._total_node):
+            for i in range(len(self._total_node)-len(self._number_of_remaining_nodes)):
+                self._number_of_remaining_nodes.append(0)
+        randomarray = {'first_column':self._total_node,
+                       'second_column':self._number_of_remaining_nodes}
+        df = pd.DataFrame(randomarray)
+        df1 = pd.concat([node_total, remaining_total], axis=1)
+            
+        ### Store line to figure
+       
+        y=  df['second_column']
+        x1 = df['first_column']
+        y_1 = df1['second_column']
+        x1_1 = df1['first_column']
+        area = int(simps(y, x=np.array(x1)))
+        workbook = xlsxwriter.Workbook('Robustness_Total_Combined_Metrics'+ str(area) +'.xlsx')
+        worksheet_robustness = workbook.add_worksheet('Robustness')
+        worksheet_robustness.write("A1", "No. of Removed Nodes")
+        worksheet_robustness.write("B1", "Number of Remaining Nodes")
+        row,row2=2,1
+        for i in self._deleted_node:
+            worksheet_robustness.write(row,0, str(i))
+            row+=1
+        for j in self._number_of_remaining_nodes:
+            worksheet_robustness.write(row2,1, str(j))
+            row2+=1
+            workbook.close()
+        plt.plot(x1_1, y_1, color = 'r', label = "Combined Metrics, Area Under Curve: " + str(area))
+        plt.title("'Robustness_Total_Combined_Metrics")
+        plt.xlabel("Number of Removed Nodes")
+        plt.ylabel("Number of Remaining Nodes")
+        plt.legend()
+        plt.show()
+        
+    def get_Digraph_Nocolor_1(self, matrix):
+        """ Return the directed graph structure from the adjacency matrix"""
+        G = nx.DiGraph(directed=True)
+        
+        print("[{}] started get_Digraph()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        for i in range(len(matrix)):
+            for j in range(len(matrix)):
+                weight=int(matrix[i][j])
+                if weight>0:
+                    
+                    G.add_edge(str(i), str(j),weight=weight)
+        
+        print("[{}] finished get_Digraph()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        return G
 
     def start_random_robustness(self):
         """Monte Carlo simulation"""
@@ -705,7 +850,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             x1 = df['first_column']
             y_1 = df1['second_column']
             x1_1 = df1['first_column']
-            area1 = int(simps(np.array(y), x=np.array(x1)))
+            area = int(simps(y, x=np.array(a)))
             if area > area1:
                 area = area1
                 workbook = xlsxwriter.Workbook('Robustness_Random_Remaining_Nodes'+ str(area) +'.xlsx')
@@ -2640,6 +2785,14 @@ class digraphPlot(tk.Canvas, tk.Frame):
             output[str(i)] = round(instrength.get(str(i)) + outstrength.get(str(i)), 2)
         return output
     
+    def det_strength_1(self):
+        output = {}
+        instrength = self.det_instrength()
+        outstrength = self.det_outstrength()
+        for i in range(len(self._adjacency_matrix)):
+            output[str(i)] = round(instrength.get(str(i)) + outstrength.get(str(i)), 2)
+        return output
+    
     def det_relative_likelihood(self):
         output = {}
         for i in range(len(self._adjacency_matrix)):
@@ -2963,24 +3116,24 @@ class digraphPlot(tk.Canvas, tk.Frame):
         buttonInitial.pack()
 
     def det_betweenness_one(self, betweenness_values):
-        for k in range(len(nx.betweenness_centrality(self._digraph_normal,normalized=True,weight="weight"))):
-            betweenness_values.append(nx.betweenness_centrality(self._digraph_normal).get(str(k)))
+        for k in range(len(nx.betweenness_centrality(self._digraph_normal_nocolor,normalized=True,weight="weight"))):
+            betweenness_values.append(nx.betweenness_centrality(self._digraph_normal_nocolor).get(str(k)))
         return betweenness_values
 
     def det_eigenvector_one(self, Eigenvector_Centrality_values):
-        for n in range(len(nx.eigenvector_centrality(self._digraph_normal, tol=1e-03, max_iter=600))):
+        for n in range(len(nx.eigenvector_centrality(self._digraph_normal_nocolor, tol=1e-03, max_iter=600))):
             Eigenvector_Centrality_values.append(
                 nx.eigenvector_centrality(self._digraph_normal, tol=1e-03, max_iter=600).get(str(n)))
         return Eigenvector_Centrality_values
 
     def det_in_closeness_one(self, in_closeness_centrality_values):
-        for m in range(len(nx.closeness_centrality(self._digraph_normal))):
-            in_closeness_centrality_values.append(nx.closeness_centrality(self._digraph_normal,distance="weight").get(str(m)))
+        for m in range(len(nx.closeness_centrality(self._digraph_normal_nocolor))):
+            in_closeness_centrality_values.append(nx.closeness_centrality(self._digraph_normal_nocolor,distance="weight").get(str(m)))
         return in_closeness_centrality_values
     
     def det_out_closeness_one(self, out_closeness_centrality_values):
-        for m in range(len(nx.closeness_centrality(self._digraph_normal.reverse()))):
-            out_closeness_centrality_values.append(nx.closeness_centrality(self._digraph_normal.reverse(),distance="weight").get(str(m)))
+        for m in range(len(nx.closeness_centrality(self._digraph_normal_nocolor.reverse()))):
+            out_closeness_centrality_values.append(nx.closeness_centrality(self._digraph_normal_nocolor.reverse(),distance="weight").get(str(m)))
         return out_closeness_centrality_values
 
     def entryValueRemove(self):
