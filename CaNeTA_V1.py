@@ -734,7 +734,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
             print(Node_need)
             self._matrix.deleteNode([Node_need])
             self._deleted_node.append(str(Node_need))
-            self._adjacency_matrix = self._matrix.adjacency_matrix()
+            self._adjacency_matrix = self._matrix.adjacency_matrix
+            self._node_ID = self._matrix.get_node_ID()
             self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
             
             
