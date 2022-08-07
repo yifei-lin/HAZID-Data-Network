@@ -834,7 +834,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     break
                 
             
-            self._number_of_remaining_nodes.append(0)
+           
             node_total = pd.Series(self._total_node, name='first_column')
             remaining_total = pd.Series(self._number_of_remaining_nodes,name='second_column')
             if len(self._number_of_remaining_nodes) < len(self._total_node):
@@ -853,6 +853,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             x1_1 = df1['first_column']
             area = int(simps(y, x=np.array(a)))
             if area > area1:
+                area_distribution["<13115"] +=1
                 area = area1
                 workbook = xlsxwriter.Workbook('Robustness_Random_Remaining_Nodes'+ str(area) +'.xlsx')
                 worksheet_robustness = workbook.add_worksheet('Robustness')
@@ -866,10 +867,18 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     worksheet_robustness.write(row2,1, str(j))
                     row2+=1
                 workbook.close()
-            self._delete_node = []
-            if a == 1999:
+            if area > 13115 and area <= 20000:
+                area_distribution["13115-20000"] +=1
+            if area > 20000 and area <= 25000:
+                area_distribution["20001-25000"] +=1
+            if area > 25000 and area <= 30000:
+                area_distribution["25000-30000"] +=1
+            if area > 30000:
+                area_distribution[">30000"] +=1
+               
+            if a == 2999:
                 plt.plot(x1_1, y_1, color = 'r', label = "Monte Carlo Simulation, least area under curve: " + str(area), alpha=0.25)
-            if a != 1999:
+            if a != 2999:
                 plt.plot(x1_1, y_1, color = 'r', alpha=0.25)
             randomarray=None
             node_total = None
@@ -884,8 +893,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
             self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_ID = self._matrix.get_node_ID()
-            self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
-            print(len(self._digraph_normal))
+            self._digraph_normal = self.get_Digraph()
             
             self._number_of_remaining_nodes = []
             for i in range(0, len(self._adjacency_matrix)):
