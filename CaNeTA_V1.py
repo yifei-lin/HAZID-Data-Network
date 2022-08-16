@@ -553,6 +553,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         drop.config(width=100)
         drop.pack()
         button_colormap = Button( self._frame_two , text = "colormap" , command = self.show_colormap, width=100).pack()
+        button_plot_colormap_total = Button(self._frame_two, text="plot_colormap_total", command=self.plot_colormap_total,width=100).pack()
         button_distribution = Button( self._frame_two , text = "distribution" , command = self.show_distribution, width=100).pack()
         button_robustness = Button( self._frame_two , text = "robustness_connected_remaining", command = self.show_robustness_connected, width=100).pack()
         button_robustness_remaining = Button( self._frame_two , text = "robustness_total_remaining", command = self.show_robustness_remaining, width=100).pack()
@@ -577,7 +578,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._largest_connected_component = []
         self._node_left = []
         self._total_node = []
-        for j in range(0, 473):
+        for j in range(0, len(self._digraph_normal)):
             self._total_node.append(j)
         print("\n[{}] finished digraphPlot init()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
 
@@ -620,22 +621,33 @@ class digraphPlot(tk.Canvas, tk.Frame):
     def start_total_robustness_remaining(self):
         loc1 = ("Total_Robustness_Remaining.xlsx")
         excel_data = pd.read_excel(loc1)
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Betweenness'], color='g', marker='.', markersize=10,label='Betweenness Area Under Curve: ' + str(excel_data['Area Under Curve Betweenness'][0]))
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='tab:purple', marker = '1', markersize=10,label='Degree Area Under Curve: '+ str(excel_data['Area Under Curve Degree'][0]))
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Strength'], color='m', marker = 'x', markersize=10,label='Strength Area Under Curve: '+ str(excel_data['Area Under Curve Strength'][0]))
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Degree'], color='y', marker = 4,markersize=10,label='In Degree Area Under Curve: '+ str(excel_data['Area Under Curve In Degree'][0]))
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Strength'], color='b', marker = 6,markersize=10,label='In Strength Area Under Curve: '+ str(excel_data['Area Under Curve In Strength'][0]))
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Closeness'], color='tab:pink', marker = '|',markersize=10,label='In Closeness Area Under Curve: '+ str(excel_data['Area Under Curve In Closeness'][0]))
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='k', marker = '2',markersize=10,label='Out Degree Area Under Curve: '+ str(excel_data['Area Under Curve Out Degree'][0]))
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Strength'], color='c', marker = '+',markersize=10,label='Out Strength Area Under Curve: '+ str(excel_data['Area Under Curve Out Strength'][0]))
-        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Closeness'], color='tab:olive', marker = '*',markersize=10,label='Out Closeness Area Under Curve: '+ str(excel_data['Area Under Curve Out Closeness'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Betweenness'], color='g',  linewidth=3.0, label='Betweenness Area Under Curve: ' + str(excel_data['Area Under Curve Betweenness'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='k',linewidth=3.0,  label='Degree Area Under Curve: '+ str(excel_data['Area Under Curve Degree'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Strength'], color='m',  linewidth=3.0, label='Strength Area Under Curve: '+ str(excel_data['Area Under Curve Strength'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Degree'], color='y', linewidth=3.0, label='In Degree Area Under Curve: '+ str(excel_data['Area Under Curve In Degree'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Strength'], color='b',linewidth=3.0,  label='In Strength Area Under Curve: '+ str(excel_data['Area Under Curve In Strength'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Closeness'], color='tab:pink',linewidth=3.0,  label='In Closeness Area Under Curve: '+ str(excel_data['Area Under Curve In Closeness'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='tab:purple', linewidth=3.0, label='Out Degree Area Under Curve: '+ str(excel_data['Area Under Curve Out Degree'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Strength'], color='c', linewidth=3.0, label='Out Strength Area Under Curve: '+ str(excel_data['Area Under Curve Out Strength'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Closeness'], color='tab:olive',linewidth=3.0,  label='Out Closeness Area Under Curve: '+ str(excel_data['Area Under Curve Out Closeness'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Betweenness Degree'], linestyle="dashed", linewidth=3.0, label='Betweenness + Degree Area Under Curve: ' + str(excel_data['Area Under Curve Degree Betweenness'][0]))
+        plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Total Combined'],   linestyle="dotted",linewidth=3.0, label='Total Combined Area Under Curve: ' + str(excel_data['Area Under Curve Total Combined'][0]))
+        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Betweenness'], color='g', marker='.', markersize=10,label='Betweenness Area Under Curve: ' + str(excel_data['Area Under Curve Betweenness'][0]))
+        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='tab:purple', marker = '1', markersize=10,label='Degree Area Under Curve: '+ str(excel_data['Area Under Curve Degree'][0]))
+        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Strength'], color='m', marker = 'x', markersize=10,label='Strength Area Under Curve: '+ str(excel_data['Area Under Curve Strength'][0]))
+        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Degree'], color='y', marker = 4,markersize=10,label='In Degree Area Under Curve: '+ str(excel_data['Area Under Curve In Degree'][0]))
+        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Strength'], color='b', marker = 6,markersize=10,label='In Strength Area Under Curve: '+ str(excel_data['Area Under Curve In Strength'][0]))
+        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Closeness'], color='tab:pink', marker = '|',markersize=10,label='In Closeness Area Under Curve: '+ str(excel_data['Area Under Curve In Closeness'][0]))
+        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='k', marker = '2',markersize=10,label='Out Degree Area Under Curve: '+ str(excel_data['Area Under Curve Out Degree'][0]))
+        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Strength'], color='c', marker = '+',markersize=10,label='Out Strength Area Under Curve: '+ str(excel_data['Area Under Curve Out Strength'][0]))
+        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Closeness'], color='tab:olive', marker = '*',markersize=10,label='Out Closeness Area Under Curve: '+ str(excel_data['Area Under Curve Out Closeness'][0]))
         plt.title("Robustness Analysis",fontsize=22)
         plt.xlabel("Number of Removed Nodes",fontsize=18)
         plt.xticks(fontsize = 15)
         plt.yticks(fontsize = 15)
         plt.ylabel("Number of Remaining Nodes",fontsize=18)
-        plt.legend(fontsize=22)
-        plt.savefig("total_robustness_Remaining.png", dpi=500, pad_inches=0)
+        plt.legend(fontsize=15)
+        plt.savefig("total_robustness_Remaining.png", dpi=500)
         
     def start_total_robustness_connected(self):
         loc1 = ("Total_Robustness_Connected.xlsx")
@@ -701,7 +713,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             '''
          
             Number_of_Remaining_Nodes_Each = {}
-            
+            self._matrix = None
             for chosen_node in name_node:
             
                 self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
@@ -712,7 +724,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
                 print(len(self._digraph_normal_nocolor))
                 self._matrix.deleteNode([int(chosen_node)])
-                self._adjacency_matrix = self._matrix._adjacency_matrix
+                self._adjacency_matrix = self._matrix.adjacency_matrix()
                 self._node_ID = self._matrix.get_node_ID()
                 self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
                 Number_of_Remaining_Nodes_Each[int(chosen_node)] = len(self._digraph_normal_nocolor)
@@ -723,8 +735,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 self._matrix.update_node_ID(stored_node_ID)
                 self._matrix.update_gather_list(stored_gather_list)
                 '''
-    
-            maxgradient = 10000000
+            self._matrix = None
+            maxgradient = 1000000000
             Node_need = 0
             print(Number_of_Remaining_Nodes_Each)
             for node_ID in Number_of_Remaining_Nodes_Each.keys():
@@ -732,16 +744,21 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     maxgradient = Number_of_Remaining_Nodes_Each.get(node_ID)
                     Node_need = node_ID
             print(Node_need)
+            self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
+            for i in self._deleted_node:
+                self._matrix.deleteNode([int(i)])
             self._matrix.deleteNode([Node_need])
             self._deleted_node.append(str(Node_need))
-            self._adjacency_matrix = self._matrix.adjacency_matrix
+            self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_ID = self._matrix.get_node_ID()
             self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
+            print(len(self._digraph_normal_nocolor))
             
             
             c=0
             maxgradient = None
             Number_of_Remaining_Nodes_Each = None
+            
             if len(self._digraph_normal_nocolor) == 0:
                     break
                 
@@ -776,9 +793,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
-            workbook.close()
+        workbook.close()
         plt.plot(x1_1, y_1, color = 'r', label = "Combined Metrics, Area Under Curve: " + str(area))
-        plt.title("'Robustness_Total_Combined_Metrics")
+        plt.title("Robustness_Total_Combined_Metrics")
         plt.xlabel("Number of Removed Nodes")
         plt.ylabel("Number of Remaining Nodes")
         plt.legend()
@@ -808,11 +825,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         stored_node_left = self._node_left
         for i in range(0, len(self._adjacency_matrix)):
             self._node_left.append(i)
-        area = 13115
-        area_distribution = {"<13115":0,"13115-20000":0,"20001-25000":0,"25000-30000":0,">30000":0}
+        area = 3000
         a=0
         times = 0
-        for i in range(4000):
+        for i in range(2):
             ### keep run until the simulation time has reached
             
             while len(self.get_Digraph_Nocolor()) != 0:
@@ -820,29 +836,24 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 nodeID = int(np.random.choice(self._node_left, size=1))
                 nodeID_list = [nodeID]
                 self._node_left.remove(nodeID)
-                print(len(self._digraph_normal_nocolor))
-                
                 self._number_of_remaining_nodes.append(len(self._digraph_normal_nocolor))
-                print(self._number_of_remaining_nodes)
                 self._matrix.deleteNode(nodeID_list)
-                
+                self._delete_node.append(nodeID)
                 self._adjacency_matrix = self._matrix.adjacency_matrix()
+                final_left_nodes = [k for i in self._node_left for j in self._node_left for k in (i,j) if self._adjacency_matrix[i][j] != 0]
+                final_left_nodes = list(set(final_left_nodes))
+                self._node_left = final_left_nodes
+                final_left_nodes = None
+                nodeID_list = None
+                nodeID=None
                 self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
                 if len(self._digraph_normal_nocolor) == 0:
                     break
-                final_left_nodes = list(self._digraph_normal_nocolor)
-                final_left_nodes_new = [int(x) for x in final_left_nodes]
-                self._node_left = final_left_nodes_new
-                final_left_nodes = None
-                final_left_nodes_new= None
-                print(len(self._digraph_normal_nocolor))
-                nodeID_list = None
-                nodeID=None
-         
+                
+            
+            self._number_of_remaining_nodes.append(0)
             node_total = pd.Series(self._total_node, name='first_column')
-            print(node_total)
             remaining_total = pd.Series(self._number_of_remaining_nodes,name='second_column')
-            print(remaining_total)
             if len(self._number_of_remaining_nodes) < len(self._total_node):
                 for i in range(len(self._total_node)-len(self._number_of_remaining_nodes)):
                     self._number_of_remaining_nodes.append(0)
@@ -850,15 +861,15 @@ class digraphPlot(tk.Canvas, tk.Frame):
                                 'second_column':self._number_of_remaining_nodes}
             df = pd.DataFrame(randomarray)
             df1 = pd.concat([node_total, remaining_total], axis=1)
+            
             ### Store line to figure
             a += 1
             y=  df['second_column']
             x1 = df['first_column']
             y_1 = df1['second_column']
             x1_1 = df1['first_column']
-            area1 = int(simps(np.array(y), x=np.array(x1)))
+            area = int(simps(y, x=np.array(a)))
             if area > area1:
-                area_distribution["<13115"] +=1
                 area = area1
                 workbook = xlsxwriter.Workbook('Robustness_Random_Remaining_Nodes'+ str(area) +'.xlsx')
                 worksheet_robustness = workbook.add_worksheet('Robustness')
@@ -872,18 +883,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
                     worksheet_robustness.write(row2,1, str(j))
                     row2+=1
                 workbook.close()
-            if area1 > 13115 and area1 <= 20000:
-                area_distribution["13115-20000"] +=1
-            if area1 > 20000 and area1 <= 25000:
-                area_distribution["20001-25000"] +=1
-            if area1 > 25000 and area1 <= 30000:
-                area_distribution["25000-30000"] +=1
-            if area1 > 30000:
-                area_distribution[">30000"] +=1
-               
-            if a == 3999:
+            self._delete_node = []
+            if a == 1999:
                 plt.plot(x1_1, y_1, color = 'r', label = "Monte Carlo Simulation, least area under curve: " + str(area), alpha=0.25)
-            if a != 3999:
+            if a != 1999:
                 plt.plot(x1_1, y_1, color = 'r', alpha=0.25)
             randomarray=None
             node_total = None
@@ -899,21 +902,19 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._adjacency_matrix = self._matrix.adjacency_matrix()
             self._node_ID = self._matrix.get_node_ID()
             self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
-            
-            
+            print(len(self._digraph_normal))
             
             self._number_of_remaining_nodes = []
             for i in range(0, len(self._adjacency_matrix)):
                 self._node_left.append(i)
             print("run for" + str(times) + "times")
             times += 1
-        print(area_distribution)
+            print(df1)
         plt.title("Monte Carlo Simulation Izok 2000 times")
         plt.xlabel("Number of Removed Nodes")
         plt.ylabel("Number of Remaining Nodes")
-        plt.legend(loc='upper right')
+        plt.legend()
         plt.show()
-            
             
             
     def re_excel(self):
@@ -1146,6 +1147,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         G = nx.DiGraph(directed=True)
         
         print("[{}] started get_Digraph()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
+        self._adjacency_matrix = self._matrix.adjacency_matrix()
         for i in range(len(self._adjacency_matrix)):
             for j in range(len(self._adjacency_matrix)):
                 weight=int(self._adjacency_matrix[i][j])
@@ -1185,27 +1187,29 @@ class digraphPlot(tk.Canvas, tk.Frame):
         fig = plt.figure(figsize=(6, 6), dpi=200)
         plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
         colors = nx.get_edge_attributes(self._digraph_normal, 'color').values()
-        options = {'font_size': 3, 'font_color': 'white', 'node_color': 'black', 'node_size': 50, 'style': 'solid',
+        options = {'font_size': 3, 'font_color': 'black', 'node_color': 'gray', 'node_size': 50, 'style': 'solid',
                    'width': 0.3}
         nx.draw_networkx(self._digraph_normal, self._pos, edge_color=colors, arrows=True, arrowsize=2, **options)
 
-        cmap = plt.get_cmap('jet', 10)
+        cmap = plt.get_cmap('coolwarm', 9)
         cmap.set_under('gray')
+        
+        for i,j in list(measures.items()):
+            if j == 0:
+                del measures[i]
+        raw = list(measures.values())
         nodes = nx.draw_networkx_nodes(self._digraph_normal, self._pos, node_size=50, cmap=cmap,
-                                       node_color=list(measures.values()),
+                                       node_color=raw,
                                        nodelist=measures.keys())
         min = 10000
-        max = 0
         for i in measures.values():
-            if i > max:
-                max = i
-            if i < min:
+            if i < min and i != 0:
                 min = i
-        nodes.set_norm(mcolors.SymLogNorm(linthresh=1, linscale=10, vmin=min, vmax=max))
+        nodes.set_norm(mcolors.SymLogNorm(linthresh=1, linscale=1, vmin=min, vmax=max(raw)))
         plt.margins(0, 0)
         plt.title(measure_name)
         cbar = plt.colorbar(nodes, shrink=0.2)
-        cbar.ax.tick_params(labelsize=5)
+        cbar.ax.tick_params(labelsize=3)
         plt.axis('off')
         plt.savefig(measure_name + ".png", dpi=800, pad_inches=0)
         print("[{}] Created: {}".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S"),measure_name + ".png"))
@@ -1214,7 +1218,56 @@ class digraphPlot(tk.Canvas, tk.Frame):
         canvas = FigureCanvasTkAgg(fig, master=self._frame_one)
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.LEFT, fill=None, expand=tk.YES)
+        
+    def plot_colormap_total(self):
+       
+        img1 = Image.open("In_Degree.png")
+        img2 = Image.open("Out_Degree.png")
+        #img3 = Image.open("In_Strength.png")
+        #img4 = Image.open("Out_Strength.png")
+        #img5 = Image.open("Strength.png")
+        #img6 = Image.open("Betweenness.png")
+        #img7 = Image.open("In_Closeness.png")
+        #img8 = Image.open("Out_Closeness.png")
+        fig, (ax_1, ax_2) = plt.subplots(nrows=1, ncols=2,
+                           figsize=(16,9))
+    
+        ax_1.set_title('In Degree Colormap')
+        ax_1.imshow(img1)
+        ax_1.axis('off')
 
+        ax_2.set_title('Out Degree Colormap')
+        ax_2.imshow(img2)
+        ax_2.axis('off')
+    
+        #ax_4.set_title('In Strength Colormap')
+        #ax_4.imshow(img3)
+        #ax_4.axis('off')
+        
+        #ax_4.set_title('Out Strength Colormap')
+        #ax_4.imshow(img3)
+        #ax_4.axis('off')
+        
+        #ax_3.set_title('In Strength Colormap')
+        #ax_3.imshow(img3)
+        #ax_3.axis('off')
+        
+        #ax_4.set_title('Out Strength Colormap')
+        #ax_4.imshow(img3)
+        #ax_4.axis('off')
+        
+        #ax_3.set_title('In Strength Colormap')
+        #ax_3.imshow(img3)
+        #ax_3.axis('off')
+        
+        #ax_4.set_title('Out Strength Colormap')
+        #ax_4.imshow(img3)
+        #ax_4.axis('off')
+    
+        plt.savefig("Colormap_Total_1" + ".png", dpi=800, pad_inches=0)
+        plt.show()
+        
+        
     def plot_ColorMap_eigen(self, measures, measure_name):
         """ Plot the colormap structure (Eigenvector) on the canvas"""
         fig = plt.figure(figsize=(6, 6), dpi=200)
@@ -1224,7 +1277,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
                    'width': 0.3}
         nx.draw_networkx(self._digraph_normal, self._pos, edge_color=colors, arrows=True, arrowsize=2, **options)
 
-        cmap = plt.get_cmap('jet', 10)
+        cmap = plt.get_cmap('coolwarm', 9)
         cmap.set_under('gray')
         nodes = nx.draw_networkx_nodes(self._digraph_normal, self._pos, node_size=50, cmap=cmap,
                                        node_color=list(measures.values()),
