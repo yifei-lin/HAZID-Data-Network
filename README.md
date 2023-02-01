@@ -39,8 +39,8 @@ Now launch `Spyder (caneta)`
   * Example format:
   A AND B AND C : (A,B,C) are in a same AND gate. Weight: 3
   A OR B OR C: (A,B,C) are in a same OR gate. Weight: 1
-  A AND (B OR C): A is with an AND gate with (B and anther OR gate with C). Weight: 2
-  A OR (B AND C): A A is with an OR gate with (B and anther AND gate with C). Weight: 2
+  A AND (B OR C): A is with an AND gate with (B and another OR gate with C). Weight: 2
+  A OR (B AND C): A is with an OR gate with (B and another AND gate with C). Weight: 2
 * For image:
   * After a new image (.png) file is produced, before next step, please save it into different name or move it to other places.
 * For node elimination:
