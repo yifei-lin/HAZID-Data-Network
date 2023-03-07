@@ -378,7 +378,7 @@ class Matrix():
                 else:
                     #print('2nd')
                     #print(self._gather_list)
-                    print(self._gather_list)
+                    
                     if int(node_no[0]) in mid_list[0]:
                         for i in mid_list[0]:
                             if isinstance(i, int):
@@ -482,6 +482,7 @@ class Matrix():
                                         a[count][count1] = self._node_ID[k]
                                       
                                         count1 += 1
+                                    
                         count += 1
                         count1 = 0
                 count = 0
