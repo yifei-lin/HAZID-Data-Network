@@ -17,8 +17,9 @@ from tqdm import tqdm
 import seaborn as sns; sns.set_theme(color_codes=True)
 import copy
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-
+import random
+from networkx.readwrite import json_graph
+import json
 
 matplotlib.use('TkAgg')
 
@@ -298,6 +299,8 @@ class Matrix():
                                 for j in c:
                                     list_22.append(j)
                                 list_1.append(list_22)
+                                list_22 = []
+                                
                             elif 'AND' in nodesDDeviation:
                                 c = nodesDDeviation.split(' AND ')
                                 for j in c:
@@ -339,7 +342,6 @@ class Matrix():
         """
         
         gather_list_two = self._gather_list.copy()
-        print(gather_list_two)
         if len(node_no) == 0:
             self._gather_list = gather_list_two
             G = nx.DiGraph(directed=True)
@@ -356,15 +358,16 @@ class Matrix():
             print(len(G))
             
         else:
+            
             for j in range(len(self._adjacency_matrix)):
                 ##The relations showing nodes point to the eliminated node should be removed.
                 self._adjacency_matrix[j][int(node_no[0])] = 0
                 #print(self._adjacency_matrix)
-            for mid_list in self._gather_list:
+            for mid_lis in self._gather_list:
+                mid_list = copy.deepcopy(mid_lis)
                 
                 ## Check mid_list contains all integer or not.
                 if all(isinstance(item, int) for item in mid_list[0]):
-                    #print('1st')
                     #print(self._gather_list)
                     if int(node_no[0]) in mid_list[0]:
                         list_1 = mid_list[0]
@@ -375,6 +378,7 @@ class Matrix():
                 else:
                     #print('2nd')
                     #print(self._gather_list)
+                    
                     if int(node_no[0]) in mid_list[0]:
                         for i in mid_list[0]:
                             if isinstance(i, int):
@@ -386,17 +390,31 @@ class Matrix():
                         node_no.append(mid_list[1])
                         gather_list_two.remove(mid_list)
                     elif int(node_no[0]) not in mid_list[0]:
-                        for i in mid_list[0]:
-                            if isinstance(i, list):
-                                if len(i) == 0:
+                        for kk in mid_list[0]:
+                            
+                            if isinstance(kk, list):
+                                if len(kk) == 0:
                                     node_no.append(mid_list[1])
                                     gather_list_two.remove(mid_list)
+                                    break
                                 else:
-                                    for list_item_1 in i:
+                                    for list_item_1 in kk:
                                         if list_item_1 == int(node_no[0]):
+                                           
                                             self._adjacency_matrix[list_item_1][mid_list[1]] = 0
-                                            i.remove(list_item_1)
+                                            
+                                            index_mid_list = self._gather_list.index(mid_list)
+                                            aaa = copy.deepcopy(kk)
+                                            cc = copy.deepcopy(mid_list[0].index(kk))
+                                            mid_list[0].remove(aaa)
+                                            
+                                            aaa.remove(list_item_1)
+                                            mid_list[0].insert(cc, aaa)
+                                           
+                                            self._gather_list[index_mid_list] = mid_list
+                                            
             node_no.pop(0)
+           
             for mid_list in gather_list_two:
                 for node_check in node_no:
                     if mid_list[1] == node_check:
@@ -447,7 +465,7 @@ class Matrix():
             self.gatherNode(list_cus, row[name[1]].rstrip(), 0)
             count = 0
             count1 = 0
-            print(list_cus)
+            
             for a in list_cus:
                 for b in a:
                     if isinstance(b, str):
@@ -460,11 +478,13 @@ class Matrix():
                             for k in self._node_ID.keys():
                                 if isinstance(kk, str):
                                     if kk.lower() == k.lower():
+                                        
                                         a[count][count1] = self._node_ID[k]
+                                      
                                         count1 += 1
-                                    else:
-                                        break
+                                    
                         count += 1
+                        count1 = 0
                 count = 0
             ## Create the relationship list (gather_list) mainly used for nodes elimination
             for aa in node_IDD1.keys():
@@ -502,9 +522,13 @@ class Matrix():
                                 count += 1
                         elif b is list:
                             for kk in b:
-                                if kk.lower() == k.lower():
+                                if isinstance(kk, str):
+                                    if kk.lower() == k.lower():
+                                        a[count] = self._node_ID[k]
+                                        count += 1
+                                else:
                                     a[count] = self._node_ID[k]
-                                    count += 1
+                                    count+=1
                 count = 0
             ## Create the relationship list (gather_list) mainly used for nodes elimination
             for aa in node_IDD2.keys():
@@ -528,6 +552,9 @@ class Matrix():
 
     def adjacency_matrix(self):
         return self._adjacency_matrix
+    
+    def change_matrix(self, matrix):
+        self._adjacency_matrix = matrix
 
     def get_gather_list(self):
         return self._gather_list
@@ -567,11 +594,11 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self.plot_Digraph_initial()
         self._frame_two = tk.Frame(self._master, bg='grey')
         self._frame_two.pack()
+        
         self.options = ["Degree", "In_Degree", "Out_Degree", "Strength", "In_Strength", "Out_Strength", "Eigenvector", 
                                  "In_Closeness", "Out_Closeness", "Betweenness", "Relative_Likelihood", "Causal_Contribution"]
         self._frame_two = tk.Frame(self._master, bg='grey')
         self._frame_two.pack()
-        
         self.add_button()
         self.clicked = StringVar()
         self.clicked.set("Degree")
@@ -598,6 +625,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         button_robustness_for_all = Button(self._frame_two, text = "Robustness for all metrics", command = self.robustness_remaining_all, width = 100).pack()
         button_robustness_for_all_descending = Button(self._frame_two, text = "Robustness for all metrics descending", command = self.robustness_remaining_all_descending_order_metric, width = 100).pack()
         button_find_optimal = Button( self._frame_two , text = "Start Optimal", command = self.start_optimal, width=100).pack()
+        button_toy_network = Button( self._frame_two , text = "Toy network", command = self.toy_network_abstraction, width=100).pack()
         self._largest_component = []
         self._deleted_node = []
         self._node_neighbor = self.neighbor_of_nodes()
@@ -611,8 +639,28 @@ class digraphPlot(tk.Canvas, tk.Frame):
         self._df = pd.DataFrame(data=self._d)
         
         
+        #self.json()
+        #data = json_graph.node_link_data(self._digraph_normal)
+        #with open('graph.json', 'w') as outfile:
+         #   outfile.write(str(data).replace("'", '"'))
+        
         print("\n[{}] finished digraphPlot init()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
-
+        
+        
+        
+    def json(self):
+        with open('graph.json', 'r') as f:
+            data = f.read()
+        graph = json.loads(data)
+        betweenness = nx.betweenness_centrality(self._digraph_normal, normalized=True,weight="weight")
+        degree = dict(self._digraph_normal.degree)
+        for i in range(len(self._digraph_normal)):
+            graph["nodes"][i]["degree"] = degree[graph["nodes"][i]["id"]]
+            graph["nodes"][i]["betweenness"] = betweenness[graph["nodes"][i]["id"]]
+            graph["nodes"][i]["meaning"] = list(self._node_ID.keys())[list(self._node_ID.values()).index(int(graph["nodes"][i]["id"]))]
+        
+        with open('output.json', 'w') as f:
+            json.dump(graph, f)
     def get_color(self,k):
 		# Yifei's original colour list
         color_list = ['red','blue','green','yellow','black','purple','grey','orange','fuchsia','olive','cyan','brown']
@@ -808,10 +856,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
                                     "Out Closeness": self.delete_by_Out_Closeness_remaining,
                                     "Betweenness": self.delete_by_Betweenness_remaining,
                                     "Total Combined": self.start_optimal}
-        options = ["Degree", "In Degree", "Out Degree", "Strength", "In Strength", "Out Strength",
-                   "In Closeness", "Out Closeness", "Betweenness", "Total Combined"]
+        options = ["Degree", "In Degree", "Out Degree", "Strength", "In Strength", "Out Strength", "In Closeness", "Out Closeness", "Betweenness", "Total Combined"]
         for i in options:
-            
+            print(i)
             stored_matrix = self._adjacency_matrix.copy()
             stored_node_ID = copy.deepcopy(self._node_ID)
             stored_node_weight = copy.deepcopy(self._node_weight)
@@ -830,24 +877,24 @@ class digraphPlot(tk.Canvas, tk.Frame):
         loc1 = ("Robustness_Total.xlsx")
         excel_data = pd.read_excel(loc1)
         fig, axes= plt.subplots(figsize=(15,8))
-        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Betweenness'], color='g',marker="X", markersize=4, markerfacecolor="red", markeredgecolor="black", linewidth=1.5, label='Betweenness: ' + str(int(excel_data['Area Under Curve Betweenness'][0])))
-        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='k',linewidth=1.5,  marker="o", markersize=4, markerfacecolor="None", label='Degree:: '+ str(int(excel_data['Area Under Curve Degree'][0])))
-        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Strength'], color='m',  linewidth=1.5,  marker="D", markersize=4, markerfacecolor="None",label='Strength: '+ str(int(excel_data['Area Under Curve Strength'][0])))
-        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes In Degree'], color='y', linewidth=1.5, marker="s", markersize=4, markerfacecolor="blue", markeredgecolor="yellow", label='In Degree: '+ str(int(excel_data['Area Under Curve In Degree'][0])))
-        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes In Strength'], color='b',linewidth=1.5,  marker="P", markersize=4, markerfacecolor="None", label='In Strength: '+ str(int(excel_data['Area Under Curve In Strength'][0])))
-        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes In Closeness'], color='tab:pink',linewidth=1.5,  marker="1", markersize=4, markerfacecolor="None",label='In Closeness: '+ str(int(excel_data['Area Under Curve In Closeness'][0])))
-        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='tab:purple', linewidth=1.5, marker=(5,2), markersize=4, markerfacecolor="None",label='Out Degree: '+ str(int(excel_data['Area Under Curve Out Degree'][0])))
-        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Out Strength'], color='c', linewidth=1.5,marker="2", markersize=4, markerfacecolor="None", label='Out Strength: '+ str(int(excel_data['Area Under Curve Out Strength'][0])))
-        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Out Closeness'], color='tab:olive',linewidth=1.5,  marker="v", markersize=4, markerfacecolor="None",label='Out Closeness: '+ str(int(excel_data['Area Under Curve Out Closeness'][0])))
+        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Betweenness'], color='g', linewidth=1.5, label='Betweenness: ' + str(int(excel_data['Area Under Curve Betweenness'][0])))
+        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='k',linewidth=1.5,   label='Degree:: '+ str(int(excel_data['Area Under Curve Degree'][0])))
+        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Strength'], color='m',  linewidth=1.5,  label='Strength: '+ str(int(excel_data['Area Under Curve Strength'][0])))
+        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes In Degree'], color='y', linewidth=1.5, label='In Degree: '+ str(int(excel_data['Area Under Curve In Degree'][0])))
+        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes In Strength'], color='b',linewidth=1.5,   label='In Strength: '+ str(int(excel_data['Area Under Curve In Strength'][0])))
+        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes In Closeness'], color='tab:pink',linewidth=1.5,  label='In Closeness: '+ str(int(excel_data['Area Under Curve In Closeness'][0])))
+        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='tab:purple', linewidth=1.5,label='Out Degree: '+ str(int(excel_data['Area Under Curve Out Degree'][0])))
+        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Out Strength'], color='c', linewidth=1.5, label='Out Strength: '+ str(int(excel_data['Area Under Curve Out Strength'][0])))
+        plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Out Closeness'], color='tab:olive',linewidth=1.5, label='Out Closeness: '+ str(int(excel_data['Area Under Curve Out Closeness'][0])))
         #plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Betweenness Degree'], linestyle="dashed",marker="^", markersize=4, markerfacecolor="None", linewidth=1.5, label='Betweenness + Degree: ' + str(int(excel_data['Area Under Curve Degree Betweenness'][0])))
         plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Total Combined'],   linestyle="dotted",marker="h", markersize=4, markerfacecolor="None",linewidth=1.5, label='Optimal: ' + str(int(excel_data['Area Under Curve Total Combined'][0])))
         #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Betweenness'], color='g', marker='.', markersize=10,label='Betweenness Area Under Curve: ' + str(excel_data['Area Under Curve Betweenness'][0]))
-        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='tab:purple', marker = '1', markersize=10,label='Degree Area Under Curve: '+ str(excel_data['Area Under Curve Degree'][0]))
+        #plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Degree'], color='tab:purple', marker = 'x', markersize=10,label='Degree Area Under Curve: '+ str(excel_data['Area Under Curve Degree'][0]))
         #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Strength'], color='m', marker = 'x', markersize=10,label='Strength Area Under Curve: '+ str(excel_data['Area Under Curve Strength'][0]))
         #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Degree'], color='y', marker = 4,markersize=10,label='In Degree Area Under Curve: '+ str(excel_data['Area Under Curve In Degree'][0]))
         #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Strength'], color='b', marker = 6,markersize=10,label='In Strength Area Under Curve: '+ str(excel_data['Area Under Curve In Strength'][0]))
         #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes In Closeness'], color='tab:pink', marker = '|',markersize=10,label='In Closeness Area Under Curve: '+ str(excel_data['Area Under Curve In Closeness'][0]))
-        #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='k', marker = '2',markersize=10,label='Out Degree Area Under Curve: '+ str(excel_data['Area Under Curve Out Degree'][0]))
+        #plt.plot(excel_data['Number of Removed Nodes'], excel_data['Number of Remaining Nodes Out Degree'], color='k', marker = '*',markersize=10,label='Out Degree Area Under Curve: '+ str(excel_data['Area Under Curve Out Degree'][0]))
         #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Strength'], color='c', marker = '+',markersize=10,label='Out Strength Area Under Curve: '+ str(excel_data['Area Under Curve Out Strength'][0]))
         #plt.plot(excel_data['Number of removed Nodes'], excel_data['Number of Remaining Nodes Out Closeness'], color='tab:olive', marker = '*',markersize=10,label='Out Closeness Area Under Curve: '+ str(excel_data['Area Under Curve Out Closeness'][0]))
         plt.xlabel("Number of Removed Nodes",fontsize=16)
@@ -921,6 +968,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         c=0
         count = -1
         name = ''
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         
         while len(self._digraph_normal_nocolor) != 0:
             self._number_of_remaining_nodes.append(len(self._digraph_normal_nocolor))
@@ -970,7 +1019,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 self._adjacency_matrix = self._matrix.adjacency_matrix()
                 self._node_ID = self._matrix.get_node_ID()
                 self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
-                print(len(self._digraph_normal_nocolor))
+                
                 self._matrix.deleteNode([int(chosen_node)])
                 self._adjacency_matrix = self._matrix.adjacency_matrix()
                 self._node_ID = self._matrix.get_node_ID()
@@ -986,21 +1035,24 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix = None
             maxgradient = 1000000000
             Node_need = 0
-            print(Number_of_Remaining_Nodes_Each)
+            
             for node_ID in Number_of_Remaining_Nodes_Each.keys():
                 if Number_of_Remaining_Nodes_Each.get(node_ID) <= maxgradient:
                     maxgradient = Number_of_Remaining_Nodes_Each.get(node_ID)
                     Node_need = node_ID
-            print(Node_need)
+            
             self._matrix = Matrix(self._excel_name, self._node_ID, self._node_weight)
             for i in self._deleted_node:
                 self._matrix.deleteNode([int(i)])
             self._matrix.deleteNode([Node_need])
             self._deleted_node.append(str(Node_need))
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_ID = self._matrix.get_node_ID()
             self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
-            print(len(self._digraph_normal_nocolor))
+           
             
             
             c=0
@@ -1015,7 +1067,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         number_of_remaining_nodes = []
         for i in self._number_of_remaining_nodes:
             number_of_remaining_nodes.append(i)
-        print(self._number_of_remaining_nodes)
+        
         node_total = pd.Series(self._total_node, name='first_column')
         remaining_total = pd.Series(self._number_of_remaining_nodes,name='second_column')
         if len(self._number_of_remaining_nodes) < len(self._total_node):
@@ -1046,6 +1098,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         workbook.close()
         plt.plot(x1_1, y_1, color = 'r', label = "Combined Metrics, Area Under Curve: " + str(area))
         plt.title("Robustness_Total_Combined_Metrics")
@@ -1076,7 +1132,199 @@ class digraphPlot(tk.Canvas, tk.Frame):
         
         print("[{}] finished get_Digraph()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         return G
+    
+    
+    
+    
+    def toy_network_Barabasi_Albert_model(self):
+        
+        degree_centrality = self._digraph_normal.degree()
+        in_degree_centrality = nx.in_degree_centrality(self._digraph_normal)
+        out_degree_centrality = nx.out_degree_centrality(self._digraph_normal)
+        betweenness_centrality = nx.betweenness_centrality(self._digraph_normal, normalized=True, weight="weight")
+        in_closeness_centrality = nx.closeness_centrality(self._digraph_normal, distance = "weight")
+        out_closeness_centrality = nx.closeness_centrality(self._digraph_normal.reverse(), distance="weight")
+        orig_graph = self._digraph_normal
+        
+        selected_nodes = random.sample(orig_graph.nodes(), 30)
 
+        # Construct a new graph with the same degree sequence as the selected nodes
+        degrees = [d for n, d in orig_graph.degree(selected_nodes)]
+        toy_graph = nx.configuration_model(degrees)
+
+        # Remove parallel edges and self-loops
+        toy_graph = nx.Graph(toy_graph)
+        node_mapping = {i: selected_nodes[i] for i in range(30)}
+        print(toy_graph.nodes)
+        print(selected_nodes)
+        # Copy the node attributes and edge weights from the original graph
+        for u, v in toy_graph.edges():
+            if orig_graph.has_edge(node_mapping[u], node_mapping[v]):
+                toy_graph[u][v]['weight'] = orig_graph[node_mapping[u]][node_mapping[v]]['weight']
+
+        #    Plot the degree distributions
+
+
+        orig_degrees = [d for n, d in orig_graph.degree()]
+        toy_degrees = [d for n, d in toy_graph.degree()]
+
+        fig, ax = plt.subplots()
+        ax.hist(orig_degrees, bins=range(max(orig_degrees)+2), alpha=0.5, label='Original')
+        ax.hist(toy_degrees, bins=range(max(toy_degrees)+2), alpha=0.5, label='Toy')
+        ax.set_xlabel('Degree')
+        ax.set_ylabel('Frequency')
+        ax.legend()
+        plt.show()
+        self._digraph_normal = toy_graph
+
+
+
+
+
+               
+    
+    def toy_network_abstraction(self):
+        
+        degree_centrality = nx.degree_centrality(self._digraph_normal)
+        in_degree_centrality = nx.in_degree_centrality(self._digraph_normal)
+        out_degree_centrality = nx.out_degree_centrality(self._digraph_normal)
+        betweenness_centrality = nx.betweenness_centrality(self._digraph_normal, normalized=True, weight="weight")
+        in_closeness_centrality = nx.closeness_centrality(self._digraph_normal, distance = "weight")
+        out_closeness_centrality = nx.closeness_centrality(self._digraph_normal.reverse(), distance="weight")
+        
+        ###Choose the top 30 nodes with high betweenness
+        
+        sorted_nodes = sorted(degree_centrality, 
+                              key=degree_centrality.get, reverse=True)
+        nodes = sorted_nodes[:30]
+        top_nodes = [node for node in nodes]
+       
+        
+        ###Create toy digraph with 30 nodes
+    
+        '''new_digraph = nx.DiGraph()'''
+        
+        ### Create toy subgraph
+        
+        new_digraph = self._digraph_normal.subgraph(top_nodes)
+        
+        ### Record NodeID
+        
+        node_mapping = {i: node for i, node in enumerate(new_digraph.nodes)}
+        
+        New_digraph = nx.relabel_nodes(new_digraph, node_mapping)
+        
+              
+        '''
+        for node in nodes:
+            new_digraph.add_node(node, 
+                                 degree_centrality = degree_centrality[node],
+                                 in_degree_centrality=in_degree_centrality[node], 
+                                 out_degree_centrality=out_degree_centrality[node], 
+                                 betweenness_centrality=betweenness_centrality[node])
+                                 
+        for u, v, data in self._digraph_normal.edges(data=True):
+            if u in nodes and v in nodes:
+                new_digraph.add_edge(u, v, weight=data['weight'])
+        '''
+        '''
+        H_new = nx.DiGraph()
+        for node, original_node in node_mapping.items():
+            H_new.add_node(original_node)
+        for u, v in new_digraph.edges:
+            H_new.add_edge(node_mapping[u], node_mapping[v])
+        '''
+        
+        ### Filter the nodes that present in origianl network but not in toy network
+        
+        orignal_nodes = set(self._digraph_normal.nodes())
+        toy_nodes = set(New_digraph.nodes())
+        common_nodes = orignal_nodes & toy_nodes
+        
+        ### Degree
+        
+        
+        
+        original_degree = self._digraph_normal.degree
+        toy_degree = New_digraph.degree
+        
+        original_degree = {node: original_degree[node] for node in common_nodes}
+        toy_degree = {node: toy_degree[node] for node in common_nodes}
+        print(original_degree)
+        print(toy_degree)
+        degree_difference = {node: original_degree[node] - toy_degree[node] for node in original_degree}
+
+        ### Plot degree difference
+        '''
+        plt.bar(degree_difference.keys(), degree_difference.values())
+        plt.xlabel("Node ID")
+        plt.ylabel("Difference in Degree Centrality")
+        plt.show()
+        '''
+        
+        aa= {node: self._digraph_normal.degree[node] for node in orignal_nodes}
+        
+        ### Plot degree distribution for original and toy network
+        
+        plt.hist(list(aa.values()), bins=20, color='blue', alpha=0.5)
+        plt.xlabel("Degree")
+        plt.ylabel("Frequency")
+        plt.title("Degree Distribution of the Original Network")
+        plt.show()
+        
+        plt.hist(list(toy_degree.values()), bins=20, color='orange', alpha=0.5)
+        plt.xlabel("Degree")
+        plt.ylabel("Frequency")
+        plt.title("Degree Distribution of the Original Network")
+        plt.show()
+        
+        plt.legend(["Original network - only nodes within toy network", "Toy network"])
+        '''
+        
+        ### Betweenness
+        
+        original_betweenness = betweenness_centrality
+        toy_betweenness = nx.betweenness_centrality(New_digraph, normalized=True, weight="weight")
+        
+        original_betweenness = {node: original_betweenness[node] for node in common_nodes}
+        toy_betweenness = {node: toy_betweenness[node] for node in common_nodes}
+        print(original_betweenness)
+        print(toy_betweenness)
+        betweenness_difference = {node: original_betweenness[node] - toy_betweenness[node] for node in original_betweenness}
+
+        ### Plot degree difference
+        
+        plt.bar(betweenness_difference.keys(), betweenness_difference.values())
+        plt.xlabel("Node ID")
+        plt.ylabel("Difference in Betweenness Centrality")
+        plt.show()
+        
+        
+        aa= {node: betweenness_centrality[node] for node in orignal_nodes}
+        
+        ### Plot degree distribution for original and toy network
+        
+        plt.hist(list(aa.values()), bins=20, color='blue', alpha=0.5)
+        plt.xlabel("Betweenness")
+        plt.ylabel("Frequency")
+        plt.title("Betweenness Distribution of the Original Network")
+        
+        plt.show()
+        
+        plt.hist(list(toy_betweenness.values()), bins=20, color='orange', alpha=0.5)
+        plt.xlabel("Betweenness")
+        plt.ylabel("Frequency")
+        plt.title("Betweenness Distribution of the Original Network")
+       
+        plt.show()
+        
+        plt.legend(["Original network", "Toy network"])
+        '''
+        
+    
+        
+        
+    
     def start_random_robustness(self):
         """Monte Carlo simulation"""
         
@@ -1086,10 +1334,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         stored_node_left = self._node_left
         for i in range(0, len(self._adjacency_matrix)):
             self._node_left.append(i)
-        area = 3000
+        area = 30000
         a=0
         times = 0
-        for i in range(2):
+        for i in range(4):
             ### keep run until the simulation time has reached
             
             while len(self.get_Digraph_Nocolor()) != 0:
@@ -1106,7 +1354,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 self._node_left = final_left_nodes
                 final_left_nodes = None
                 nodeID_list = None
-                nodeID=None
+                nodeID = None
                 self._digraph_normal_nocolor = self.get_Digraph_Nocolor()
                 if len(self._digraph_normal_nocolor) == 0:
                     break
@@ -1129,7 +1377,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
             x1 = df['first_column']
             y_1 = df1['second_column']
             x1_1 = df1['first_column']
-            area = int(simps(y, x=np.array(a)))
+            area1 = int(simps(y, x=np.array(x1)))
             if area > area1:
                 area = area1
                 workbook = xlsxwriter.Workbook('Robustness_Random_Remaining_Nodes'+ str(area) +'.xlsx')
@@ -1395,7 +1643,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         print("[{}] started get_Digraph()".format(datetime.now().strftime("%d-%m-%Y %H:%M:%S")))
         for i in range(len(self._adjacency_matrix)):
             for j in range(len(self._adjacency_matrix)):
-                weight=int(self._adjacency_matrix[i][j])
+                weight=int(self._adjacency_matrix[i,j])
                 if weight>0:
                     color = self.get_color(weight-1)
                     G.add_edge(str(i), str(j), color=color,weight=weight)
@@ -1634,6 +1882,16 @@ class digraphPlot(tk.Canvas, tk.Frame):
                 saved_list = []
                 self.new(saved_list, component, 0)
                 
+### Find removed nodes
+
+    def find_removed_nodes(self, original_matrix, reduced_matrix):
+        removed = []
+        for i in range(original_matrix.shape[0]):
+            if (np.sum(original_matrix[i]) != 0 or np.sum(original_matrix[:, i]) != 0) and (np.sum(reduced_matrix[i]) == 0 and np.sum(reduced_matrix[:, i]) == 0):
+                removed.append(i)
+        return removed
+
+                
 ### Robustness of network focusing on number of remaining nodes   
     def delete_by_degree_remaining(self):
         """
@@ -1642,7 +1900,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         count = -1
         name = ''
         a = self._digraph_normal.degree
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         component = []
+        
         while len(a) != 0:
             for i in a:
                 if i[1] > count:
@@ -1655,13 +1916,18 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix.deleteNode(self._delete_node)
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_neighbor = self.neighbor_of_nodes()
             self._digraph_normal = self.get_Digraph()
+            
             count = -1
             name = ''
             a = self._digraph_normal.degree
         fig1, sub1 = plt.subplots()
         a = []
+       
         for i in range(len(self._deleted_node)+1):
             a.append(i)
         self._number_of_remaining_nodes.append(0)
@@ -1686,6 +1952,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         worksheet_robustness.write(1,2, str(area))
         workbook.close()
         arealist = [area]
@@ -1696,9 +1966,7 @@ class digraphPlot(tk.Canvas, tk.Frame):
         d = {"Number of Remaining Nodes Degree":self._number_of_remaining_nodes,"Area Under Curve Degree": arealist}
         df = pd.DataFrame(data=d)
         self._df = pd.concat([self._df, df], axis=1)
-     
-        
-        
+       
         
     def delete_by_degree_remaining_new(self):
         """
@@ -1763,6 +2031,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         count = 0
         name = ''
         a = self._digraph_normal.out_degree
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         component = []
         print(a)
         while len(a) != 0:
@@ -1778,13 +2048,15 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix.deleteNode(self._delete_node)
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_neighbor = self.neighbor_of_nodes()
             self._digraph_normal = self.get_Digraph()
             count = 0
             name = ''
             a = self._digraph_normal.out_degree
             print(len(a))
-        print(1111)
         fig1, sub1 = plt.subplots()
         a = []
         for i in range(len(self._deleted_node)+1):
@@ -1812,6 +2084,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         worksheet_robustness.write(1,2, str(area))
         workbook.close()
         arealist = [area]
@@ -1829,6 +2105,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         name = ''
         a = self._digraph_normal.in_degree
         component = []
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         while len(a) != 0:
             for i in a:
                 if i[1] > count:
@@ -1841,6 +2119,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix.deleteNode(self._delete_node)
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_neighbor = self.neighbor_of_nodes()
             self._digraph_normal = self.get_Digraph()
             count = 0
@@ -1875,6 +2156,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         worksheet_robustness.write(1,2, str(area))    
         workbook.close()
         arealist = [area]
@@ -1893,6 +2178,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         name = ''
         cc = 0
         aa = []
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         a = nx.closeness_centrality(self._digraph_normal, distance="weight")
         component = []
         while len(a) != 0:
@@ -1907,6 +2194,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix.deleteNode(self._delete_node)
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_neighbor = self.neighbor_of_nodes()
             self._digraph_normal = self.get_Digraph()
             count = -1
@@ -1940,6 +2230,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         workbook.close()
         arealist = [area]
         for i in range(len(self._total_node)-1):
@@ -1956,6 +2250,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         name = ''
         cc = 0
         aa = []
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         a = nx.closeness_centrality(self._digraph_normal.reverse(), distance="weight")
         component = []
         while len(a) != 0:
@@ -1970,6 +2266,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix.deleteNode(self._delete_node)
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_neighbor = self.neighbor_of_nodes()
             self._digraph_normal = self.get_Digraph()
             count = -1
@@ -2003,6 +2302,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         workbook.close()
         arealist = [area]
         for i in range(len(self._total_node)-1):
@@ -2020,6 +2323,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         b = len(self._digraph_normal)
         a = nx.eigenvector_centrality(self._digraph_normal, tol=1e-03)
         component = []
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         while b != 0:
             for i in a:
                 if a[i] > count:
@@ -2076,6 +2381,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         name = ''
         a = nx.betweenness_centrality(self._digraph_normal, normalized=True,weight="weight")
         component = []
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         cc = 0
         aa = []
         while len(a) != 0:
@@ -2091,6 +2398,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._delete_node = []
             cc = 0
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_neighbor = self.neighbor_of_nodes()
             self._digraph_normal = self.get_Digraph()
             count = -1
@@ -2124,6 +2434,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         workbook.close()
         arealist = [area]
         for i in range(len(self._total_node)-1):
@@ -2143,6 +2457,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         outstrength = self.det_outstrength()
         a = self.det_strength(instrength, outstrength)
         component = []
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         while b != 0:
             for i in a:
                 if a[i] > count:
@@ -2155,6 +2471,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix.deleteNode(self._delete_node)
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_neighbor = self.neighbor_of_nodes()
             self._digraph_normal = self.get_Digraph()
             count = -1
@@ -2193,6 +2512,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         workbook.close()
         arealist = [area]
         for i in range(len(self._total_node)-1):
@@ -2210,6 +2533,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         b = len(self._digraph_normal)
         a = self.det_instrength()
         component = []
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         while b != 0:
             for i in a:
                 if a[i] > count:
@@ -2222,6 +2547,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix.deleteNode(self._delete_node)
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_neighbor = self.neighbor_of_nodes()
             self._digraph_normal = self.get_Digraph()
             count = -1
@@ -2258,6 +2586,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         workbook.close()
         arealist = [area]
         for i in range(len(self._total_node)-1):
@@ -2276,6 +2608,8 @@ class digraphPlot(tk.Canvas, tk.Frame):
         a = self.det_outstrength()
         print(a)
         component = []
+        original_matrix = copy.deepcopy(self._adjacency_matrix)
+        removed_nodes = []
         while b != 0:
             for i in a:
                 if a[i] > count:
@@ -2289,6 +2623,9 @@ class digraphPlot(tk.Canvas, tk.Frame):
             self._matrix.deleteNode(self._delete_node)
             self._delete_node = []
             self._adjacency_matrix = self._matrix.adjacency_matrix()
+            removed_node = self.find_removed_nodes(original_matrix, self._adjacency_matrix)
+            removed_nodes.append(str(removed_node))
+            original_matrix = copy.deepcopy(self._adjacency_matrix)
             self._node_neighbor = self.neighbor_of_nodes()
             self._digraph_normal = self.get_Digraph()
             print(len(self._digraph_normal))
@@ -2327,6 +2664,10 @@ class digraphPlot(tk.Canvas, tk.Frame):
         for j in self._number_of_remaining_nodes:
             worksheet_robustness.write(row2,1, str(j))
             row2+=1
+        row = 2
+        for k in removed_nodes:
+            worksheet_robustness.write(row,3, str(k))
+            row+=1
         workbook.close()
         arealist = [area]
         for i in range(len(self._total_node)-1):
@@ -3353,12 +3694,14 @@ class digraphPlot(tk.Canvas, tk.Frame):
             worksheet_nodes.write(row + 1, col, i)
             worksheet_nodes.write(row + 1, col + 1, self._node_ID[i])
             # Degree
+            print(i)
             print(self._node_ID)
             print(degree_1)
-            print(degree_1(str(self._node_ID[i])))
             worksheet_nodes.write(row + 1, col + 2, degree_1(str(self._node_ID[i])))
+            print(1)
             # InDegree
             worksheet_nodes.write(row + 1, col + 3, indegree_1(str(self._node_ID[i])))
+            print(2)
             # OutDegree
             worksheet_nodes.write(row + 1, col + 4, outdegree_1(str(self._node_ID[i])))
             # Strength
